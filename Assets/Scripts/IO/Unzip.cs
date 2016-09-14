@@ -38,7 +38,7 @@ namespace IO
 
 			} else {
 				Observable.Start (() => {
-					zipPath = "/Users/Harald/Cloud Workspace/Professional/Vianova/UnityApp/Assets/Resources/test.zip";
+					zipPath = "/Users/Harald/Cloud Workspace/Professional/Vianova/IMKLVisualiserApp/Assets/Resources/test.zip";
 					Debug.Log ("zipping");
 					unzipAllFiles (zipPath, exportPath);
 
@@ -56,7 +56,6 @@ namespace IO
 
 				
 		}
-
 		void parseAllXML (string exportPath)
 		{
 			var info = new DirectoryInfo (exportPath);
@@ -68,8 +67,7 @@ namespace IO
 			Debug.Log ("parsing " + xmlInfo.Length + " xml files.");
 			if (xmlInfo.Length > 0) {
 				foreach (FileInfo f in xmlInfo) {
-					Debug.Log (f.Name);
-					KLIPParser.Parse (f.FullName);
+					IMKLParser.Parse (f.FullName);
 				}
 			}
 
