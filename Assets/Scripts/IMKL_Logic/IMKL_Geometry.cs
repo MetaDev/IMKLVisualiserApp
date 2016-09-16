@@ -11,39 +11,59 @@ namespace IMKL_logic
         static System.Random rnd = new System.Random();
 
 
-        public static void DrawPoint(Vector2 pos, float height)
+        public static void DrawPoint(Vector2 pos, Texture2D tex)
         {
 
-            var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            sphere.transform.localScale = new Vector3(1, 1, 1);
-            sphere.transform.position = new Vector3(pos.x, pos.y, height);
+
+            GameObject go = new GameObject();
+            go.name="point";
+            SpriteRenderer renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+
+            //go.transform.localScale = new Vector3(1, 1, 1);
+            go.transform.position = new Vector3(pos.x, 0, pos.y);
+            go.transform.eulerAngles= new Vector3(270,0,0);
+
         }
-
-        public static void DrawLineString(IEnumerable<Vector2> posList, float height)
+        public enum LineStyle
         {
-            Color c1 = Color.yellow;
-            Color c2 = Color.red;
+            FULL, DASH, DASHDOT
+        }
+        static IDictionary<LineStyle, string> lineTileMap = new Dictionary<LineStyle, string>(){
+            {LineStyle.DASHDOT,"dot_dash"},
+            {LineStyle.DASH,"square_dash"}
+        };
+        public static void DrawLineString(IEnumerable<Vector2> posList, Color col, LineStyle style)
+        {
+
             var linestring = new GameObject();
+            linestring.name="line";
             LineRenderer lineRenderer = linestring.AddComponent<LineRenderer>();
-            Vector3[] points = posList.Select(s => new Vector3(s.x, s.y, height)).ToArray();
+            Vector3[] points = posList.Select(s => new Vector3(s.x, 0, s.y)).ToArray();
             lineRenderer.material = new Material(Shader.Find("Particles/Additive"));
-            lineRenderer.startColor = c1;
-            lineRenderer.endColor = c2;
+            lineRenderer.startColor = col;
+            lineRenderer.endColor = col;
             lineRenderer.startWidth = 0.2F;
             lineRenderer.endWidth = 0.2F;
-            lineRenderer.numPositions=(posList.Count());
-
+            lineRenderer.numPositions = (posList.Count());
+            if (style != LineStyle.FULL)
+            {
+                lineRenderer.textureMode = LineTextureMode.Tile;
+                lineRenderer.material=new Material(Shader.Find("Sprites/Default"));
+                lineRenderer.material.mainTexture = Resources.Load("linestyles/"+lineTileMap[style]) as Texture2D;
+                lineRenderer.material.SetColor("_TintColor",col);
+                
+            }
             lineRenderer.SetPositions(points);
-
         }
 
 
-        public static void SetCamera(IEnumerable<Vector2> points)
+        public static void SetCamera(Vector2 point, float dist = 20)
         {
 
-            Camera.main.transform.transform.position = points.ElementAt(rnd.Next(points.Count()));
-            Camera.main.transform.transform.position += new Vector3(0, 0, 20);
-            Camera.main.transform.transform.LookAt(points.ElementAt(rnd.Next(points.Count())));
+            Camera.main.transform.transform.position = point;
+            Camera.main.transform.transform.position += new Vector3(0, dist, 0);
+            Camera.main.transform.transform.LookAt(point);
 
         }
 

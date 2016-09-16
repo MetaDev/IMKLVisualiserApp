@@ -12,7 +12,7 @@ using IMKL_logic;
 using Utility;
 using System.Collections.Generic;
 using System;
-
+using UniRx;
 
 namespace IO
 {
@@ -37,43 +37,113 @@ namespace IO
             "Cabinet"
         });
         //private static Dictionary<string, XNamespace> imklNamespaces;
-        public static void Parse(string fileName)
+        public static void Parse(IEnumerable<string> imklXMLFileNames)
         {
-            XDocument doc = XDocument.Load(fileName);
-            //TODO show to chris
-            //load all namespaces, works but gives errors when used in method with LINQ 
-            // var imklNamespaces = doc.Root.Attributes().
-            //     Where(a => a.IsNamespaceDeclaration).
-            //     GroupBy(a => a.Name.Namespace == XNamespace.None ? String.Empty : a.Name.LocalName,
-            //         a => XNamespace.Get(a.Value)).
-            //     ToDictionary(g => g.Key,
-            //         g => g.First());
+            var pointsDrawInfo = new List<Tuple<Vector2, Texture2D>>();
+            var linesDrawInfo = new List<Tuple<IEnumerable<Vector2>, Color, IMKL_Geometry.LineStyle>>();
+            foreach (String fileName in imklXMLFileNames)
+            {
+                XDocument doc = XDocument.Load(fileName);
+                pointsDrawInfo.AddRange(ParsePoints(doc));
+                linesDrawInfo.AddRange(ParseLines(doc));
 
-            //draw only the selected elements
-
-            //TODO catch parsing errors
-            var pointsPos = from point in doc.Descendants().Where(ePoint => pointsToDraw.Contains(ePoint.Name.LocalName))
-                            select StringParser.parsePos(point.DescendantsByLocalName("pos").Single().Value);
-            //translate point to origin of scene
+            }
+            //draw all geometry at the center of the scene
+            var pointsPos = pointsDrawInfo.Select(point => point.Item1);
             Vector2 min = new Vector2(pointsPos.Min(v => v.x), pointsPos.Min(v => v.y));
-            pointsPos.Select(pos => pos - min).ForEach(pos => IMKL_Geometry.DrawPoint(pos, 0));
+            pointsDrawInfo.ForEach(pInfo => IMKL_Geometry.DrawPoint(pInfo.Item1 - min, pInfo.Item2));
+            linesDrawInfo.ForEach(lInfo => IMKL_Geometry.DrawLineString(lInfo.Item1.Select(pos=>pos-min),lInfo.Item2,lInfo.Item3));
 
-            IMKL_Geometry.SetCamera(doc.Descendants().Where(e => pointsToDraw.Contains(e.Name.LocalName))
-                 .Select(e =>
-                   StringParser.parsePos(e.DescendantsByLocalName("pos").First().Value)
-                 ));
-            //TODO show to Chris Debug.Log(imklNamespaces["gml"]) -> error but correct output
-            
-            var linesPoslists = from linkInLine in doc.Descendants().Where(eLine => linesToDraw.Contains(eLine.Name.LocalName))
-            																						.DescendantsByLocalName("link")
-                                join link in doc.DescendantsByLocalName("UtilityLink")
-                                on linkInLine.AttributeByLocalName("href").Value.Split(':').Last() equals
-                                link.DescendantsByLocalName("localId").Single().Value
-                                select StringParser.parsePosList(link.DescendantsByLocalName("posList").Single().Value);
-            linesPoslists.Select(posList => posList.Select(pos => pos - min)).ForEach(poslist => IMKL_Geometry.DrawLineString(poslist, 0));
-
-
+            //set camera of scene to center of geometry
+            Vector2 max = new Vector2(pointsPos.Max(v => v.x), pointsPos.Max(v => v.y));
+            IMKL_Geometry.SetCamera((max - min) / 2, 50);
         }
+        static IEnumerable<Tuple<Vector2, Texture2D>> ParsePoints(XDocument doc)
+        {
+
+            //parse all point with their position and necessary properties
+            //Appurtenance is a special case, it has a specific subtype
+            var points = from point in doc.Descendants().Where(ePoint => pointsToDraw.Contains(ePoint.Name.LocalName))
+                         join network in doc.DescendantsByLocalName("UtilityNetwork")
+                         on point.DescendantsByLocalName("inNetwork").Single().AttributeByLocalName("href").Value.Split(':').Last() equals
+                         network.DescendantsByLocalName("localId").Single().Value
+                         select new
+                         {
+                             pointType = point.Name.LocalName == "Appurtenance" ?
+                             point.DescendantsByLocalName("appurtenanceType").Single().AttributeByLocalName("href").Value.Split('/').Last() :
+                             point.Name.LocalName,
+                             pos = StringParser.parsePos(point.DescendantsByLocalName("pos").Single().Value),
+                             thema = network.DescendantsByLocalName("utilityNetworkType").Single().AttributeByLocalName("href")
+                                                                        .Value.Split('/').Last(),
+                             status = point.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last()
+
+                         };
+            //draw points
+            List<Texture2D> textures = new List<Texture2D>();
+            foreach (var point in points)
+            {
+                Texture2D tex = Resources.Load("icons/" + ((point.thema == "oilGasChemical" ? point.thema + "s" : point.thema).ToLowerInvariant()
+                 + "_" + point.pointType
+                 + (point.status == "functional" ? "" : "_" + point.status)).ToLowerInvariant(), typeof(Texture2D)) as Texture2D;
+                //appurtenance is the default icon if not found
+                if (tex == null)
+                {
+                    tex = Resources.Load("icons/" + ((point.thema == "oilGasChemical" ? point.thema + "s" : point.thema).ToLowerInvariant()
+                + "_" + "appurtenance"
+                + (point.status == "functional" ? "" : "_" + point.status)).ToLowerInvariant(), typeof(Texture2D)) as Texture2D;
+                }
+                //TODO properly handle unfound icons
+                if (tex == null)
+                {
+                    Debug.Log("icon not found");
+                }
+                textures.Add(tex);
+                //draw center pos
+            }
+            return points.Zip(textures, (point, tex) => Tuple.Create(point.pos, tex));
+        }
+        
+        static IDictionary<string, string> lineColorMap = new Dictionary<string, string>(){
+            {"electricity","#D73027"},
+            {"oilgaschemical","#D957F9"},
+            {"sewer","#8C510A"},
+            {"telecommunications","#68BB1F"},
+            {"thermal","#FFC000"},
+            {"water","#2166AC"},
+            {"crossTheme","#FEE08B"}
+        };
+        static IDictionary<string, IMKL_Geometry.LineStyle> lineStyleMap = new Dictionary<string, IMKL_Geometry.LineStyle>(){
+            {"functional",IMKL_Geometry.LineStyle.FULL},
+            {"projected",IMKL_Geometry.LineStyle.DASH},
+            {"disused",IMKL_Geometry.LineStyle.DASHDOT}
+        };
+        static IEnumerable<Tuple<IEnumerable<Vector2>, Color, IMKL_Geometry.LineStyle>> ParseLines(XDocument doc)
+        {
+            var lines = from line in doc.Descendants().Where(eLine => linesToDraw.Contains(eLine.Name.LocalName))
+                        from linkInLine in line.DescendantsByLocalName("link")
+                        join link in doc.DescendantsByLocalName("UtilityLink")
+                        on linkInLine.AttributeByLocalName("href").Value.Split(':').Last()
+                        equals link.DescendantsByLocalName("localId").Single().Value
+
+                        join network in doc.DescendantsByLocalName("UtilityNetwork")
+                        on link.DescendantsByLocalName("inNetwork").Single().AttributeByLocalName("href").Value.Split(':').Last()
+                        equals network.DescendantsByLocalName("localId").Single().Value
+                        select new
+                        {
+                            posList = StringParser.parsePosList(link.DescendantsByLocalName("posList").Single().Value),
+                            thema = network.DescendantsByLocalName("utilityNetworkType").Single().AttributeByLocalName("href")
+                                                                        .Value.Split('/').Last().ToLowerInvariant(),
+                            status = line.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last()
+
+                        };
+            //color map
+            return lines.Select(line => Tuple.Create(
+                line.posList,
+                Conversion.hexToColor(lineColorMap[line.thema]),
+                lineStyleMap[line.status]));
+        }
+
+
         static IEnumerable<XElement> DescendantsByLocalName(this XContainer root, string localName)
         {
             return root.Descendants().Where(e => e.Name.LocalName == localName);
@@ -82,9 +152,10 @@ namespace IO
         {
             return root.Descendants().Where(e => e.Name.LocalName == localName);
         }
-		public static XAttribute AttributeByLocalName(this XElement el, string localName){
-			return el.Attributes().Where(a => a.Name.LocalName == localName).First();
-		}
+        public static XAttribute AttributeByLocalName(this XElement el, string localName)
+        {
+            return el.Attributes().Where(a => a.Name.LocalName == localName).First();
+        }
 
     }
 

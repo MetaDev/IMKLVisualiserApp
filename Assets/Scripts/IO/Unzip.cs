@@ -2,9 +2,8 @@
 using System.Collections;
 using System;
 using System.IO;
-using System.Security.Cryptography;
-using System.Collections.Generic;
-using System.Security.Policy;
+using System.Linq;
+
 using UniRx;
 using Utility;
 
@@ -25,7 +24,7 @@ namespace IO
 			Debug.Log ("start");
 			string zipPath;
 			if (online) {
-				//WARNING: the url should be a direct download link dl=1 in dropbox
+				//WARNING: the url should be a direct download e.g. link dl=1 in dropbox
 				//TODO add progress notifier to downloader
 				string url = "https://www.dropbox.com/s/iyhwc008sbb7pq3/test.zip?dl=1";
 				zipPath = Application.temporaryCachePath + "/tempZip.zip";
@@ -53,24 +52,15 @@ namespace IO
 					File.Delete (f.FullName);
 				}
 			}
-
-				
 		}
 		void parseAllXML (string exportPath)
 		{
 			var info = new DirectoryInfo (exportPath);
-
 			//parse all xml
 			//find all xmls in subfolders
 			var xmlInfo = info.GetFiles ("*.xml", SearchOption.AllDirectories);
-
 			Debug.Log ("parsing " + xmlInfo.Length + " xml files.");
-			if (xmlInfo.Length > 0) {
-				foreach (FileInfo f in xmlInfo) {
-					IMKLParser.Parse (f.FullName);
-				}
-			}
-
+			IMKLParser.Parse (xmlInfo.Select(f => f.FullName));
 		}
 
 		void unzipAllFiles (string zipPath, string exportPath)
@@ -80,13 +70,11 @@ namespace IO
 			var zipInfo = info.GetFiles ("*.zip");
 			int j = 0;
 			if (zipInfo.Length > 0) {
-				
 				foreach (FileInfo f in zipInfo) {					
 					//create new folder for each subzip file (because the sub zip are from different companies)
 					//and name uniqueness cannot be guaranteed
 					//unzipfiles in the same path but add id to unsure unique filename
 					unzipAllFiles (f.FullName, exportPath + '/' + j);
-
 					j++;
 
 				}

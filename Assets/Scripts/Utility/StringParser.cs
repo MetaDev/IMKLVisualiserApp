@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Utility
 {
@@ -18,8 +19,8 @@ namespace Utility
 			return float.Parse (f);
 		}
 			
-		public static Vector2[] parsePosList(string posList){
-			return posList.Split (' ').Batch (2).Select (posArr => parseVec2 (posArr.ToArray ())).ToArray ();
+		public static IEnumerable<Vector2> parsePosList(string posList){
+			return posList.Split (' ').Batch (2).Select (posArr => parseVec2 (posArr.ToArray ()));
 
 		}
 	}
