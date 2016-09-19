@@ -16,9 +16,9 @@ using UniRx;
 
 namespace IO
 {
-
     public static class IMKLParser
     {
+        public static OnlineMaps map= OnlineMaps.instance;
         static HashSet<string> linesToDraw = new HashSet<string>(new string[] {
             "ElectricityCable",
             "TelecommunicationsCable",
@@ -52,11 +52,21 @@ namespace IO
             var pointsPos = pointsDrawInfo.Select(point => point.Item1);
             Vector2 min = new Vector2(pointsPos.Min(v => v.x), pointsPos.Min(v => v.y));
             pointsDrawInfo.ForEach(pInfo => IMKL_Geometry.DrawPoint(pInfo.Item1 - min, pInfo.Item2));
-            linesDrawInfo.ForEach(lInfo => IMKL_Geometry.DrawLineString(lInfo.Item1.Select(pos=>pos-min),lInfo.Item2,lInfo.Item3));
+            linesDrawInfo.ForEach(lInfo => IMKL_Geometry.DrawLineString(lInfo.Item1.Select(pos => pos - min), lInfo.Item2, lInfo.Item3));
 
             //set camera of scene to center of geometry
             Vector2 max = new Vector2(pointsPos.Max(v => v.x), pointsPos.Max(v => v.y));
-            IMKL_Geometry.SetCamera((max - min) / 2, 50);
+            var relCenter = (max - min) / 2;
+
+            //IMKL_Geometry.SetCamera(center, 50);
+            var absCenter = (max+min)/2;
+            Debug.Log(absCenter);
+            Debug.Log(GEO.Lambert72_To_LatLon(absCenter));
+            OnlineMapsLocationService.instance.position= GEO.Lambert72_To_LatLon(absCenter);
+            
+            double t;
+            double k;
+            map.GetPosition(out t,out k);
         }
         static IEnumerable<Tuple<Vector2, Texture2D>> ParsePoints(XDocument doc)
         {
@@ -102,7 +112,7 @@ namespace IO
             }
             return points.Zip(textures, (point, tex) => Tuple.Create(point.pos, tex));
         }
-        
+
         static IDictionary<string, string> lineColorMap = new Dictionary<string, string>(){
             {"electricity","#D73027"},
             {"oilgaschemical","#D957F9"},

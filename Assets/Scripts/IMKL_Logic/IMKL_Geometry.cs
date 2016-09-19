@@ -2,7 +2,7 @@
 using System.Linq;
 using UniRx;
 using System.Collections.Generic;
-
+using UnityEditor;
 
 namespace IMKL_logic
 {
@@ -10,19 +10,29 @@ namespace IMKL_logic
     {
         static System.Random rnd = new System.Random();
 
+        public static GameObject CreateMarker(Texture2D tex)
+        {
+            GameObject go = new GameObject();
+            go.name = "point";
+            SpriteRenderer renderer = go.AddComponent<SpriteRenderer>();
+            go.transform.eulerAngles = new Vector3(270, 0, 0);
+            renderer.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
 
+            GameObject prefab = PrefabUtility.CreatePrefab("Assets/Whatever.prefab", go, ReplacePrefabOptions.ReplaceNameBased);
+            return prefab;
+        }
         public static void DrawPoint(Vector2 pos, Texture2D tex)
         {
 
 
             GameObject go = new GameObject();
-            go.name="point";
+            go.name = "point";
             SpriteRenderer renderer = go.AddComponent<SpriteRenderer>();
             renderer.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
 
             //go.transform.localScale = new Vector3(1, 1, 1);
             go.transform.position = new Vector3(pos.x, 0, pos.y);
-            go.transform.eulerAngles= new Vector3(270,0,0);
+            go.transform.eulerAngles = new Vector3(270, 0, 0);
 
         }
         public enum LineStyle
@@ -37,7 +47,7 @@ namespace IMKL_logic
         {
 
             var linestring = new GameObject();
-            linestring.name="line";
+            linestring.name = "line";
             LineRenderer lineRenderer = linestring.AddComponent<LineRenderer>();
             Vector3[] points = posList.Select(s => new Vector3(s.x, 0, s.y)).ToArray();
             lineRenderer.material = new Material(Shader.Find("Particles/Additive"));
@@ -49,10 +59,10 @@ namespace IMKL_logic
             if (style != LineStyle.FULL)
             {
                 lineRenderer.textureMode = LineTextureMode.Tile;
-                lineRenderer.material=new Material(Shader.Find("Sprites/Default"));
-                lineRenderer.material.mainTexture = Resources.Load("linestyles/"+lineTileMap[style]) as Texture2D;
-                lineRenderer.material.SetColor("_TintColor",col);
-                
+                lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+                lineRenderer.material.mainTexture = Resources.Load("linestyles/" + lineTileMap[style]) as Texture2D;
+                lineRenderer.material.SetColor("_TintColor", col);
+
             }
             lineRenderer.SetPositions(points);
         }

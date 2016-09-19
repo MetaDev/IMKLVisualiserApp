@@ -1,28 +1,53 @@
 ﻿using UnityEngine;
 using System.Linq;
 using System.Collections.Generic;
-
+using UniRx;
 namespace Utility
 {
 
-	public static class StringParser 
-	{
+    public static class StringParser
+    {
+        public class Pos
+        {
+            public Pos(double x, double y)
+            {
+                this.x = x;
+                this.y = y;
+            }
+            public double x;
+            public double y;
+            public static Pos operator +(Pos p1,Pos p2)
+            {
+                return new Pos(p1.x + p2.x ,p1.y+p2.y);
+            }
+			public static Pos operator -(Pos p1,Pos p2)
+            {
+                return new Pos(p1.x - p2.x ,p1.y-p2.y);
+            }
+			public static Pos operator /(Pos p1,double d)
+            {
+                return new Pos(p1.x /d ,p1.y/2);
+            }
+        }
+        public static Pos parsePos(string pos)
+        {
+            string[] posArr = pos.Split(' ');
+            return parseVec2(posArr);
+        }
+        private static Pos parseVec2(string[] posArr)
+        {
+            return new Pos(parseFloat(posArr[0]), parseFloat(posArr[1]));
+        }
+        private static double parseFloat(string f)
+        {
+            return double.Parse(f);
+        }
 
-		public static Vector2 parsePos(string pos){
-			string[] posArr = pos.Split (' ');
-			return parseVec2 (posArr);
-		}
-		private static Vector2 parseVec2(string[] posArr){
-			return new Vector2 (parseFloat( posArr[0]), parseFloat (posArr [1]));
-		}
-		private static float parseFloat(string f){
-			return float.Parse (f);
-		}
-			
-		public static IEnumerable<Vector2> parsePosList(string posList){
-			return posList.Split (' ').Batch (2).Select (posArr => parseVec2 (posArr.ToArray ()));
+        public static IEnumerable<Pos> parsePosList(string posList)
+        {
+            return posList.Split(' ').Batch(2).Select(posArr => parseVec2(posArr.ToArray()));
 
-		}
-	}
+        }
+    }
 }
 
