@@ -60,11 +60,11 @@ namespace IO
 
             //IMKL_Geometry.SetCamera(center, 50);
             var absCenter = (max + min) / 2;
-            Debug.Log(absCenter);
-            var latlon = GEO.LBToLL.LambertToLatLong(absCenter);
-            Debug.Log("good convert"+latlon);
-            Debug.Log(absCenter);
-            OnlineMaps.instance.position = new Vector2((float)latlon.y,(float)latlon.x);
+            var latlon = GEO.LambertToLatLong(absCenter);
+           
+            OnlineMaps.instance.position = latlon;
+            OnlineMaps.instance.zoom=17;
+            OnlineMaps.instance.Redraw();
             // OnlineMapsLocationService.instance.position = GEO.LambertToLongLat(absCenter);
             // OnlineMapsLocationService.instance.UpdatePosition();
             double t;

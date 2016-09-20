@@ -11,53 +11,32 @@ namespace IMKL_logic
         static System.Random rnd = new System.Random();
 
         static List<Tuple<GameObject, Pos>> geometryPos = new List<Tuple<GameObject, Pos>>();
-        private static void OnChangePosition()
-        {
-            // When the position changes you will see in the console new map coordinates.
-            foreach (var gp in geometryPos)
-            {
-                gp.Item1.transform.position = OnlineMapsTileSetControl.instance.GetWorldPosition(gp.Item2);
-            }
-        }
 
         private static void OnChangeZoom()
         {
             // When the zoom changes you will see in the console new zoom.
             Debug.Log(OnlineMaps.instance.zoom);
         }
-        static bool hookToMap = false;
-        static void HookToMap()
-        {
-            if (!hookToMap)
-            {
-                // Subscribe to change position event.
-                OnlineMaps.instance.OnChangePosition += OnChangePosition;
 
-                // Subscribe to change zoom event.
-                OnlineMaps.instance.OnChangeZoom += OnChangeZoom;
-                hookToMap=true;
-            }
 
-        }
 
-       
         public static void DrawPoint(Pos l72, string thema, string pointType, string status)
         {
-            HookToMap();
             //convert L72 to lat lon and lat lon to unity
-            var temp = GEO.LBToLL.LambertToLatLong(l72);
-            Pos latlon = new Pos(temp.y,temp.x);
-            Vector3 pos = OnlineMapsTileSetControl.instance.GetWorldPosition(latlon);
-            //create object in the scene
-            GameObject go = new GameObject();
-            go.name = "point";
-            SpriteRenderer renderer = go.AddComponent<SpriteRenderer>();
-            go.transform.eulerAngles = new Vector3(270, 0, 0);
-            go.transform.position = pos;
-            Texture2D tex = GetTexture(thema, pointType, status);
-            renderer.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+            Pos latlon = GEO.LambertToLatLong(l72);
+          
+            GameObject go = GetIconPrefab(thema, pointType, status);
+           
+            OnlineMapsControlBase3D control = OnlineMaps.instance.GetComponent<OnlineMapsControlBase3D>();
 
-            geometryPos.Add(Tuple.Create(go, latlon));
+            if (control == null)
+            {
+                Debug.LogError("You must use the 3D control (Texture or Tileset).");
+                return;
+            }
+            // Create 3D marker
+            var marker3D = control.AddMarker3D(latlon, go);
+            marker3D.scale = 100;
 
         }
         public enum LineStyle
@@ -70,7 +49,6 @@ namespace IMKL_logic
         };
         public static void DrawLineString(IEnumerable<Pos> posList, Color col, LineStyle style)
         {
-            HookToMap();
             var linestring = new GameObject();
             linestring.name = "line";
             LineRenderer lineRenderer = linestring.AddComponent<LineRenderer>();
@@ -91,14 +69,20 @@ namespace IMKL_logic
             }
             lineRenderer.SetPositions(points);
         }
-        static IDictionary<string, Texture2D> prefabIcons = new Dictionary<string, Texture2D>();
-        private static Texture2D GetTexture(string thema, string pointType, string status)
+        static IDictionary<string, GameObject> prefabIcons = new Dictionary<string, GameObject>();
+        private static GameObject GetIconPrefab(string thema, string pointType, string status)
         {
+
+            //go.transform.localScale=new Vector3(10,10,1);
             string name = (thema == "oilGasChemical" ? thema + "s" : thema).ToLowerInvariant()
                  + "_" + pointType
                  + (status == "functional" ? "" : "_" + status).ToLowerInvariant();
             if (!prefabIcons.ContainsKey(name))
             {
+                GameObject go = new GameObject();
+                go.name = "point";
+                SpriteRenderer renderer = go.AddComponent<SpriteRenderer>();
+                go.transform.eulerAngles = new Vector3(270, 0, 0);
                 Texture2D tex = Resources.Load("icons/" + name, typeof(Texture2D)) as Texture2D;
                 //appurtenance is the default icon if not found
                 if (tex == null)
@@ -113,7 +97,9 @@ namespace IMKL_logic
                 {
                     Debug.Log("icon not found");
                 }
-                prefabIcons.Add(name, tex);
+                renderer.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+
+                prefabIcons.Add(name, go);
             }
             return prefabIcons[name];
 

@@ -2,10 +2,14 @@ todo
 
 parse xml to render info of point and lines on seperate thread (avoid blocking)
 
+
 load zips from webservice
 
 test on android/ios/win
 
+increase resolution 
+You can increase the text size stylize map using snazzymaps or mapbox.
+Read sections «Styled Google Maps» and «Using Mapbox» in the documentation.
 
 UI
 
