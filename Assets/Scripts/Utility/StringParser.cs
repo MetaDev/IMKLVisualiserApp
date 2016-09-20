@@ -4,10 +4,7 @@ using System.Collections.Generic;
 using UniRx;
 namespace Utility
 {
-
-    public static class StringParser
-    {
-        public class Pos
+     public class Pos
         {
             public Pos(double x, double y)
             {
@@ -16,19 +13,30 @@ namespace Utility
             }
             public double x;
             public double y;
-            public static Pos operator +(Pos p1,Pos p2)
+            public static Pos operator +(Pos p1, Pos p2)
             {
-                return new Pos(p1.x + p2.x ,p1.y+p2.y);
+                return new Pos(p1.x + p2.x, p1.y + p2.y);
             }
-			public static Pos operator -(Pos p1,Pos p2)
+            public static Pos operator -(Pos p1, Pos p2)
             {
-                return new Pos(p1.x - p2.x ,p1.y-p2.y);
+                return new Pos(p1.x - p2.x, p1.y - p2.y);
             }
-			public static Pos operator /(Pos p1,double d)
+            public static Pos operator /(Pos p1, double d)
             {
-                return new Pos(p1.x /d ,p1.y/2);
+                return new Pos(p1.x / d, p1.y / 2);
+            }
+            public static implicit operator Vector2(Pos p)
+            {
+                return new Vector2((float)p.x, (float)p.y);
+            }
+            public override string ToString(){
+                return this.x+ " " +this.y;
             }
         }
+
+    public static class StringParser
+    {
+       
         public static Pos parsePos(string pos)
         {
             string[] posArr = pos.Split(' ');

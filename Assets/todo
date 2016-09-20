@@ -1,16 +1,11 @@
 todo
 
-
-render lines with dash/ long short dash and full (all colours)
-
+parse xml to render info of point and lines on seperate thread (avoid blocking)
 
 load zips from webservice
 
 test on android/ios/win
 
-integrate maps and gps
-
-test platforms
 
 UI
 

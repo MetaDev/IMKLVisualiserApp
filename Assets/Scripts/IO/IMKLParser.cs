@@ -18,7 +18,7 @@ namespace IO
 {
     public static class IMKLParser
     {
-        public static OnlineMaps map= OnlineMaps.instance;
+        public static OnlineMaps map = OnlineMaps.instance;
         static HashSet<string> linesToDraw = new HashSet<string>(new string[] {
             "ElectricityCable",
             "TelecommunicationsCable",
@@ -39,8 +39,8 @@ namespace IO
         //private static Dictionary<string, XNamespace> imklNamespaces;
         public static void Parse(IEnumerable<string> imklXMLFileNames)
         {
-            var pointsDrawInfo = new List<Tuple<Vector2, Texture2D>>();
-            var linesDrawInfo = new List<Tuple<IEnumerable<Vector2>, Color, IMKL_Geometry.LineStyle>>();
+            var pointsDrawInfo = new List<Tuple<Pos, string, string, string>>();
+            var linesDrawInfo = new List<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>>();
             foreach (String fileName in imklXMLFileNames)
             {
                 XDocument doc = XDocument.Load(fileName);
@@ -50,25 +50,30 @@ namespace IO
             }
             //draw all geometry at the center of the scene
             var pointsPos = pointsDrawInfo.Select(point => point.Item1);
-            Vector2 min = new Vector2(pointsPos.Min(v => v.x), pointsPos.Min(v => v.y));
-            pointsDrawInfo.ForEach(pInfo => IMKL_Geometry.DrawPoint(pInfo.Item1 - min, pInfo.Item2));
+            Pos min = new Pos(pointsPos.Min(v => v.x), pointsPos.Min(v => v.y));
+            pointsDrawInfo.ForEach(pInfo => IMKL_Geometry.DrawPoint(pInfo.Item1 - min, pInfo.Item2, pInfo.Item3, pInfo.Item4));
             linesDrawInfo.ForEach(lInfo => IMKL_Geometry.DrawLineString(lInfo.Item1.Select(pos => pos - min), lInfo.Item2, lInfo.Item3));
 
             //set camera of scene to center of geometry
-            Vector2 max = new Vector2(pointsPos.Max(v => v.x), pointsPos.Max(v => v.y));
+            Pos max = new Pos(pointsPos.Max(v => v.x), pointsPos.Max(v => v.y));
             var relCenter = (max - min) / 2;
 
             //IMKL_Geometry.SetCamera(center, 50);
-            var absCenter = (max+min)/2;
+            var absCenter = (max + min) / 2;
             Debug.Log(absCenter);
-            Debug.Log(GEO.Lambert72_To_LatLon(absCenter));
-            OnlineMapsLocationService.instance.position= GEO.Lambert72_To_LatLon(absCenter);
-            
+            var latlon = GEO.LBToLL.LambertToLatLong(absCenter);
+            Debug.Log("good convert"+latlon);
+            Debug.Log(absCenter);
+            OnlineMaps.instance.position = new Vector2((float)latlon.y,(float)latlon.x);
+            // OnlineMapsLocationService.instance.position = GEO.LambertToLongLat(absCenter);
+            // OnlineMapsLocationService.instance.UpdatePosition();
             double t;
             double k;
-            map.GetPosition(out t,out k);
+            map.GetPosition(out t, out k);
+
         }
-        static IEnumerable<Tuple<Vector2, Texture2D>> ParsePoints(XDocument doc)
+
+        static IEnumerable<Tuple<Pos, string, string, string>> ParsePoints(XDocument doc)
         {
 
             //parse all point with their position and necessary properties
@@ -89,28 +94,8 @@ namespace IO
 
                          };
             //draw points
-            List<Texture2D> textures = new List<Texture2D>();
-            foreach (var point in points)
-            {
-                Texture2D tex = Resources.Load("icons/" + ((point.thema == "oilGasChemical" ? point.thema + "s" : point.thema).ToLowerInvariant()
-                 + "_" + point.pointType
-                 + (point.status == "functional" ? "" : "_" + point.status)).ToLowerInvariant(), typeof(Texture2D)) as Texture2D;
-                //appurtenance is the default icon if not found
-                if (tex == null)
-                {
-                    tex = Resources.Load("icons/" + ((point.thema == "oilGasChemical" ? point.thema + "s" : point.thema).ToLowerInvariant()
-                + "_" + "appurtenance"
-                + (point.status == "functional" ? "" : "_" + point.status)).ToLowerInvariant(), typeof(Texture2D)) as Texture2D;
-                }
-                //TODO properly handle unfound icons
-                if (tex == null)
-                {
-                    Debug.Log("icon not found");
-                }
-                textures.Add(tex);
-                //draw center pos
-            }
-            return points.Zip(textures, (point, tex) => Tuple.Create(point.pos, tex));
+
+            return points.Select(point => Tuple.Create(point.pos, point.thema, point.pointType, point.status));
         }
 
         static IDictionary<string, string> lineColorMap = new Dictionary<string, string>(){
@@ -127,7 +112,7 @@ namespace IO
             {"projected",IMKL_Geometry.LineStyle.DASH},
             {"disused",IMKL_Geometry.LineStyle.DASHDOT}
         };
-        static IEnumerable<Tuple<IEnumerable<Vector2>, Color, IMKL_Geometry.LineStyle>> ParseLines(XDocument doc)
+        static IEnumerable<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>> ParseLines(XDocument doc)
         {
             var lines = from line in doc.Descendants().Where(eLine => linesToDraw.Contains(eLine.Name.LocalName))
                         from linkInLine in line.DescendantsByLocalName("link")

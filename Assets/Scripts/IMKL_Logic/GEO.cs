@@ -2,93 +2,127 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using ProjNet;
+using Utility;
 public static class GEO
 {
-	
-    public static Vector2 LatLon_To_Lambert72(Vector2 latlon)
+
+
+    static double ConvertDegreeAngleToDouble(double degrees, double minutes, double seconds)
     {
-        double lat = latlon.x;
-        double lng = latlon.y;
+        //Decimal degrees = 
+        //   whole number of degrees, 
+        //   plus minutes divided by 60, 
+        //   plus seconds divided by 3600
 
-        double LongRef = 0.076042943;
-        //=4°21'24"983
-        double bLamb = 6378388 * (1 - (1 / 297));
-        double aCarre = Math.Pow(6378388, 2);
-        double eCarre = (aCarre - Math.Pow(bLamb, 2)) / aCarre;
-        double KLamb = 11565915.812935;
-        double nLamb = 0.7716421928;
-
-        double eLamb = Math.Sqrt(eCarre);
-        double eSur2 = eLamb / 2;
-
-        //conversion to radians
-        lat = (Math.PI / 180) * lat;
-        lng = (Math.PI / 180) * lng;
-
-        double eSinLatitude = eLamb * Math.Sin(lat);
-        double TanZDemi = (Math.Tan((Math.PI / 4) - (lat / 2))) * (Math.Pow(((1 + (eSinLatitude)) / (1 - (eSinLatitude))), (eSur2)));
-
-        double RLamb = KLamb * (Math.Pow((TanZDemi), nLamb));
-
-        double Teta = nLamb * (lng - LongRef);
-
-        double x = 0;
-        double y = 0;
-
-        x = 150000 + 0.01256 + RLamb * Math.Sin(Teta - 0.000142043);
-        y = 5400000 + 88.4378 - RLamb * Math.Cos(Teta - 0.000142043);
-
-        return new Vector2((float)x,(float) y);
+        return degrees + (minutes / 60) + (seconds / 3600);
     }
-
-    public static Vector2 Lambert72_To_LatLon(Vector2 lb72)
+    public static double ToRadians(this double val)
     {
-        double X = lb72.x;
-        double Y = lb72.y;
-
-        double LongRef = 0.076042943;
-        //=4°21'24"983
-        double nLamb = 0.7716421928;
-        double aCarre = Math.Pow(6378388, 2);
-        double bLamb = 6378388 * (1 - (1 / 297));
-        double eCarre = (aCarre - Math.Pow(bLamb, 2)) / aCarre;
-        double KLamb = 11565915.812935;
-
-        double eLamb = Math.Sqrt(eCarre);
-        double eSur2 = eLamb / 2;
-
-        double Tan1 = (X - 150000.01256) / (5400088.4378 - Y);
-        double Lambda = LongRef + (1 / nLamb) * (0.000142043 + Math.Atan(Tan1));
-        double RLamb = Math.Sqrt(Math.Pow((X - 150000.01256), 2) + Math.Pow((5400088.4378 - Y), 2));
-
-        double TanZDemi = Math.Pow((RLamb / KLamb), (1 / nLamb));
-        double Lati1 = 2 * Math.Atan(TanZDemi);
-
-        double eSin = 0;
-        double Mult1 = 0;
-        double Mult2 = 0;
-        double Mult = 0;
-        double LatiN = 0;
-        double Diff = 0;
-
-        double lat = 0;
-        double lng = 0;
-
-        do
+        return (Math.PI / 180.0) * val;
+    }
+    public static double Pow(this double r, double p)
+    {
+        return Math.Pow(r, p);
+    }
+    public static double Sin(this double r)
+    {
+        return Math.Sin(r);
+    }
+    public static double Cos(this double r)
+    {
+        return Math.Cos(r);
+    }
+    public static double Tan(this double r)
+    {
+        return Math.Tan(r);
+    }
+    private static double ToDegree(this double angle)
+    {
+        return angle * (180.0 / Math.PI);
+    }
+    public static void Log(params object[] objs)
+    {
+        string log = "";
+        foreach (object obj in objs)
         {
-            eSin = eLamb * Math.Sin(Lati1);
-            Mult1 = 1 - eSin;
-            Mult2 = 1 + eSin;
-            Mult = Math.Pow((Mult1 / Mult2), (eLamb / 2));
-            LatiN = (Math.PI / 2) - (2 * (Math.Atan(TanZDemi * Mult)));
-            Diff = LatiN - Lati1;
-            Lati1 = LatiN;
-        } while (Math.Abs(Diff) > 2.77777E-08);
-
-        lat = (LatiN * 180) / Math.PI;
-        lng = (Lambda * 180) / Math.PI;
-
-        return new Vector2((float)lat,(float) lng);
+            log += " " + obj.ToString();
+        }
+        Debug.Log(log);
     }
+    public static double Ln(this double d)
+    {
+        return Math.Log(d);
+    }
+    static double PI = Math.PI;
+    //convert EPSG:4326 WGS 84 to EPSG:31370 Belge 1972 / Belgian Lambert 72
+    public static class LBToLL
+    {
+        static double a = 6378388;
+        static double f = 1d / 297.0;
+        static double phi1 = ConvertDegreeAngleToDouble(49, 50, 0.00204).ToRadians();
+        static double phi2 = ConvertDegreeAngleToDouble(51, 10, 0.00204).ToRadians();
+        static double phi0 = 90.0.ToRadians();
+        static double lambda0 = ConvertDegreeAngleToDouble(4, 22, 2.952).ToRadians();
+        static double x0 = 150000.013;
+        static double y0 = 5400088.438;
+        static double eTo2 = 2 * f - f.Pow(2);
+        static double e = Math.Sqrt(eTo2);
+        static double m1 = Cos(phi1) / (1 - eTo2 * Sin(phi1).Pow(2)).Pow(0.5);
+        static double m2 = Cos(phi2) / (1 - eTo2 * Sin(phi2).Pow(2)).Pow(0.5);
+
+        static double t1 = Tan(PI / 4 - phi1 / 2) / ((1 - e * Sin(phi1)) / (1 + e * Sin(phi1))).Pow(e / 2);
+        static double t2 = Tan(PI / 4 - phi2 / 2) / ((1 - e * Sin(phi2)) / (1 + e * Sin(phi2))).Pow(e / 2);
+        static double t0 = Tan(PI / 4 - phi0 / 2) / ((1 - e * Sin(phi0)) / (1 + e * Sin(phi0))).Pow(e / 2);
+
+        static double n = (m1.Ln() - m2.Ln()) / (t1.Ln() - t2.Ln());
+
+        static double g = m1 / (n * t1.Pow(n));
+        static double r0 = a * g * t0.Pow(n);
+        //precision for 1 cm correctness
+        static double min_precision = 0.00000001;
+        public static Pos LambertToLatLong(Pos lb)
+        {
+
+            var x = lb.x;
+            var y = lb.y;
+            var r = ((x - x0).Pow(2) + (r0 - (y - y0)).Pow(2)).Pow(0.5);
+            var t = (r / a * g).Pow(1 / n);
+            var theta = Math.Atan((x - x0) / (r0 - (y - y0)));
+
+            var lambda = (theta / n) + lambda0;
+
+            var phi_i = PI / 2 - 2 * Math.Atan(t);
+            var phi = 0.0;
+            var diff = 1.0;
+            Log(f);
+            do
+            {
+                phi = PI / 2 - 2 * Math.Atan(t * ((1 - e * Sin(phi_i)) / (1 + e * Sin(phi_i))).Pow(e / 2));
+                diff = Math.Abs(phi - phi_i);
+                phi_i = phi;
+            } while (diff > min_precision);
+
+            return new Pos((phi+2*PI).ToDegree(), lambda.ToDegree());
+        }
+
+
+        public static Pos LatLongToLambert(Pos LatLong)
+        {
+
+            var phi = LatLong.x;
+            var lambda = LatLong.y;
+            var t = Tan(PI / 4 - phi / 2) / ((1 - e * Sin(phi)) / (1 + e * Sin(phi))).Pow(e / 2);
+            var r = a * g * t.Pow(n);
+            var theta = n * (lambda - lambda0);
+            var x = x0 + r * Sin(theta);
+            var y = y0 + r0 - r * Cos(theta);
+
+            return new Pos(x, y);
+        }
+    }
+
+
+
+
 }

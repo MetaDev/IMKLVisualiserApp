@@ -25,9 +25,9 @@ public class Test : MonoBehaviour
         string url = CombineUri(_serviceUriAuth, "/authorization/ws/oauth/v2/token").ToString();
 
         WebRequest request = WebRequest.Create(url);
-        _codeAuthorization = HttpUtility.UrlEncode(_codeAuthorization);
-        _clientSecret = HttpUtility.UrlEncode(_clientSecret);
-        _redirectUri = HttpUtility.UrlEncode(_redirectUri);
+        // _codeAuthorization = HttpUtility.UrlEncode(_codeAuthorization);
+        // _clientSecret = HttpUtility.UrlEncode(_clientSecret);
+        // _redirectUri = HttpUtility.UrlEncode(_redirectUri);
 
         request.Method = "POST";
         string body = String.Format("grant_type={0}&code={1}&client_id={2}&client_secret={3}&redirect_uri={4}",
