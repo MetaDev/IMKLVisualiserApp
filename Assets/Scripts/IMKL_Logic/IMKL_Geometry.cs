@@ -24,9 +24,9 @@ namespace IMKL_logic
         {
             //convert L72 to lat lon and lat lon to unity
             Pos latlon = GEO.LambertToLatLong(l72);
-          
+
             GameObject go = GetIconPrefab(thema, pointType, status);
-           
+
             OnlineMapsControlBase3D control = OnlineMaps.instance.GetComponent<OnlineMapsControlBase3D>();
 
             if (control == null)
@@ -34,8 +34,9 @@ namespace IMKL_logic
                 Debug.LogError("You must use the 3D control (Texture or Tileset).");
                 return;
             }
-            // Create 3D marker
-            var marker3D = control.AddMarker3D(latlon, go);
+            // Create 3D marker, x lon y lat
+            OnlineMaps.instance.AddMarker(new Vector2((float)latlon.y, (float)latlon.x), null, "Player");
+            var marker3D = control.AddMarker3D(new Vector2((float)latlon.y, (float)latlon.x), GameObject.Instantiate(go));
             marker3D.scale = 100;
 
         }
@@ -83,6 +84,7 @@ namespace IMKL_logic
                 go.name = "point";
                 SpriteRenderer renderer = go.AddComponent<SpriteRenderer>();
                 go.transform.eulerAngles = new Vector3(270, 0, 0);
+                go.transform.localScale = new Vector3(100, 100, 0);
                 Texture2D tex = Resources.Load("icons/" + name, typeof(Texture2D)) as Texture2D;
                 //appurtenance is the default icon if not found
                 if (tex == null)
