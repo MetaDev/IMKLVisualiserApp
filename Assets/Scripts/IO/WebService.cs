@@ -7,7 +7,7 @@ using System.Net;
 using System;
 using System.IO;
 
-public class Test : MonoBehaviour
+public class WebService : MonoBehaviour
 {
     public static Uri CombineUri(string baseUri, string relativeOrAbsoluteUri)
     {

@@ -18,7 +18,30 @@ namespace IMKL_logic
             Debug.Log(OnlineMaps.instance.zoom);
         }
 
+        public static void Draw(Tuple<IEnumerable<Tuple<Pos, string, string, string>>,
+                                        IEnumerable<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>>> drawInfo){
+            Debug.Log("drawing starts");
+            var pointsDrawInfo = drawInfo.Item1;
+            var linesDrawInfo = drawInfo.Item2;
+            //draw all geometry at the center of the scene
+            var pointsPos = pointsDrawInfo.Select(point => point.Item1);
+            Pos min = new Pos(pointsPos.Min(v => v.x), pointsPos.Min(v => v.y));
+            
+            pointsDrawInfo.ForEach(pInfo => IMKL_Geometry.DrawPoint(pInfo.Item1 - min, pInfo.Item2, pInfo.Item3, pInfo.Item4));
+            linesDrawInfo.ForEach(lInfo => IMKL_Geometry.DrawLineString(lInfo.Item1.Select(pos => pos - min), lInfo.Item2, lInfo.Item3));
 
+            //set camera of scene to center of geometry
+            Pos max = new Pos(pointsPos.Max(v => v.x), pointsPos.Max(v => v.y));
+            var relCenter = (max - min) / 2;
+
+            //IMKL_Geometry.SetCamera(center, 50);
+            var absCenter = (max + min) / 2;
+            var latlon = GEO.LambertToLatLong(absCenter);
+           
+            OnlineMaps.instance.position = latlon;
+            OnlineMaps.instance.zoom=17;
+            OnlineMaps.instance.Redraw();
+        }
 
         public static void DrawPoint(Pos l72, string thema, string pointType, string status)
         {
@@ -35,9 +58,7 @@ namespace IMKL_logic
                 return;
             }
             // Create 3D marker, x lon y lat
-            OnlineMaps.instance.AddMarker(new Vector2((float)latlon.y, (float)latlon.x), null, "Player");
             var marker3D = control.AddMarker3D(new Vector2((float)latlon.y, (float)latlon.x), GameObject.Instantiate(go));
-            marker3D.scale = 100;
 
         }
         public enum LineStyle

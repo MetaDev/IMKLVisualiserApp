@@ -13,11 +13,19 @@ using Utility;
 using System.Collections.Generic;
 using System;
 using UniRx;
+using System.IO;
 
 namespace IO
 {
     public static class IMKLParser
     {
+        public static string xmlpath = Application.persistentDataPath + "/imkl_xmls";
+        public static IEnumerable<FileInfo> GetAllXMLFiles(){
+             var info = new DirectoryInfo(xmlpath);
+ 
+            return  info.GetFiles("*.xml", SearchOption.AllDirectories);
+
+        }
         public static OnlineMaps map = OnlineMaps.instance;
         static HashSet<string> linesToDraw = new HashSet<string>(new string[] {
             "ElectricityCable",
@@ -37,7 +45,9 @@ namespace IO
             "Cabinet"
         });
         //private static Dictionary<string, XNamespace> imklNamespaces;
-        public static void Parse(IEnumerable<string> imklXMLFileNames)
+        public static Tuple<IEnumerable<Tuple<Pos, string, string, string>>,
+            IEnumerable<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>>> 
+                                Parse(IEnumerable<string> imklXMLFileNames)
         {
             var pointsDrawInfo = new List<Tuple<Pos, string, string, string>>();
             var linesDrawInfo = new List<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>>();
@@ -48,28 +58,11 @@ namespace IO
                 linesDrawInfo.AddRange(ParseLines(doc));
 
             }
-            //draw all geometry at the center of the scene
-            var pointsPos = pointsDrawInfo.Select(point => point.Item1);
-            Pos min = new Pos(pointsPos.Min(v => v.x), pointsPos.Min(v => v.y));
-            pointsDrawInfo.ForEach(pInfo => IMKL_Geometry.DrawPoint(pInfo.Item1 - min, pInfo.Item2, pInfo.Item3, pInfo.Item4));
-            linesDrawInfo.ForEach(lInfo => IMKL_Geometry.DrawLineString(lInfo.Item1.Select(pos => pos - min), lInfo.Item2, lInfo.Item3));
+                        Debug.Log("XML parsed");
 
-            //set camera of scene to center of geometry
-            Pos max = new Pos(pointsPos.Max(v => v.x), pointsPos.Max(v => v.y));
-            var relCenter = (max - min) / 2;
-
-            //IMKL_Geometry.SetCamera(center, 50);
-            var absCenter = (max + min) / 2;
-            var latlon = GEO.LambertToLatLong(absCenter);
-           
-            OnlineMaps.instance.position = latlon;
-            OnlineMaps.instance.zoom=17;
-            OnlineMaps.instance.Redraw();
-            // OnlineMapsLocationService.instance.position = GEO.LambertToLongLat(absCenter);
-            // OnlineMapsLocationService.instance.UpdatePosition();
-            double t;
-            double k;
-            map.GetPosition(out t, out k);
+            //cast back to IEnumerable
+            return Tuple.Create((IEnumerable<Tuple<Pos, string, string, string>>)pointsDrawInfo,
+            (IEnumerable<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>>)linesDrawInfo);
 
         }
 
