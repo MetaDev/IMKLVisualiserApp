@@ -8,7 +8,7 @@ using System.Xml.Linq;
 
 using System.Linq;
 
-using IMKL_logic;
+using IMKL_Logic;
 using Utility;
 using System.Collections.Generic;
 using System;
@@ -20,10 +20,11 @@ namespace IO
     public static class IMKLParser
     {
         public static string xmlpath = Application.persistentDataPath + "/imkl_xmls";
-        public static IEnumerable<FileInfo> GetAllXMLFiles(){
-             var info = new DirectoryInfo(xmlpath);
- 
-            return  info.GetFiles("*.xml", SearchOption.AllDirectories);
+        public static IEnumerable<FileInfo> GetAllXMLFiles()
+        {
+            var info = new DirectoryInfo(xmlpath);
+
+            return info.GetFiles("*.xml", SearchOption.AllDirectories);
 
         }
         public static OnlineMaps map = OnlineMaps.instance;
@@ -45,28 +46,24 @@ namespace IO
             "Cabinet"
         });
         //private static Dictionary<string, XNamespace> imklNamespaces;
-        public static Tuple<IEnumerable<Tuple<Pos, string, string, string>>,
-            IEnumerable<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>>> 
-                                Parse(IEnumerable<string> imklXMLFileNames)
+        public static IObservable<DrawElement> Parse(IEnumerable<string> imklXMLFileNames)
         {
-            var pointsDrawInfo = new List<Tuple<Pos, string, string, string>>();
-            var linesDrawInfo = new List<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>>();
-            foreach (String fileName in imklXMLFileNames)
+            // return imklXMLFileNames.SelectMany(fileName=>{
+            //     XDocument doc = XDocument.Load(fileName);
+            //     return Tuple.Create(ParsePoints(doc),ParseLines(doc));
+            // });
+
+
+            return imklXMLFileNames.SelectMany(fileName =>
             {
                 XDocument doc = XDocument.Load(fileName);
-                pointsDrawInfo.AddRange(ParsePoints(doc));
-                linesDrawInfo.AddRange(ParseLines(doc));
-
-            }
-                        Debug.Log("XML parsed");
-
-            //cast back to IEnumerable
-            return Tuple.Create((IEnumerable<Tuple<Pos, string, string, string>>)pointsDrawInfo,
-            (IEnumerable<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>>)linesDrawInfo);
+                Debug.Log("XML" + fileName + " parsed");
+                return ParsePoints(doc).Concat(ParseLines(doc));
+            }).ToObservable();
 
         }
 
-        static IEnumerable<Tuple<Pos, string, string, string>> ParsePoints(XDocument doc)
+        static IEnumerable<DrawElement> ParsePoints(XDocument doc)
         {
 
             //parse all point with their position and necessary properties
@@ -86,26 +83,17 @@ namespace IO
                              status = point.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last()
 
                          };
-            //draw points
-
-            return points.Select(point => Tuple.Create(point.pos, point.thema, point.pointType, point.status));
+            return points.Select(point => (DrawElement)new Point(point.pos,
+                        new Dictionary<Point.Properties, string>(){
+                            {Point.Properties.THEMA,point.thema},
+                            {Point.Properties.POINTTYPE,point.pointType},
+                            {Point.Properties.STATUS,point.status}
+                        })
+                        );
         }
 
-        static IDictionary<string, string> lineColorMap = new Dictionary<string, string>(){
-            {"electricity","#D73027"},
-            {"oilgaschemical","#D957F9"},
-            {"sewer","#8C510A"},
-            {"telecommunications","#68BB1F"},
-            {"thermal","#FFC000"},
-            {"water","#2166AC"},
-            {"crossTheme","#FEE08B"}
-        };
-        static IDictionary<string, IMKL_Geometry.LineStyle> lineStyleMap = new Dictionary<string, IMKL_Geometry.LineStyle>(){
-            {"functional",IMKL_Geometry.LineStyle.FULL},
-            {"projected",IMKL_Geometry.LineStyle.DASH},
-            {"disused",IMKL_Geometry.LineStyle.DASHDOT}
-        };
-        static IEnumerable<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>> ParseLines(XDocument doc)
+
+        static IEnumerable<DrawElement> ParseLines(XDocument doc)
         {
             var lines = from line in doc.Descendants().Where(eLine => linesToDraw.Contains(eLine.Name.LocalName))
                         from linkInLine in line.DescendantsByLocalName("link")
@@ -124,13 +112,15 @@ namespace IO
                             status = line.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last()
 
                         };
-            //color map
-            return lines.Select(line => Tuple.Create(
-                line.posList,
-                Conversion.hexToColor(lineColorMap[line.thema]),
-                lineStyleMap[line.status]));
-        }
 
+
+            return lines.Select(line => (DrawElement)new Line(line.posList,
+                            new Dictionary<Line.Properties, string>(){
+                                        {Line.Properties.THEMA,line.thema},
+                                        {Line.Properties.STATUS,line.status}
+                            }
+                            ));
+        }
 
         static IEnumerable<XElement> DescendantsByLocalName(this XContainer root, string localName)
         {

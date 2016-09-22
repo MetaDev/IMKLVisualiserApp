@@ -4,23 +4,33 @@ using IO;
 using UnityEngine;
 using System.Linq;
 using UniRx;
-using IMKL_logic;
+using IMKL_Logic;
+using Utility;
+public class Test : MonoBehaviour
+{
 
-public class Test : MonoBehaviour {
+    // Use this for initialization
+    void Start()
+    {
 
-	// Use this for initialization
-	void Start () {
+        var panel = GUIFactory.CreateMultiSelectPanel(new Vector2(50, 50));
 
-		var panel =GUIFactory.CreateMultiSelectPanel();
-		panel.AddItems(IMKLParser.GetAllXMLFiles().Select(f => Tuple.Create(f.Name,f.FullName)));
-		panel.SetMethodOnSelectedItems((items)=> {
-			IMKL_Geometry.Draw(IMKLParser.Parse(items.Select(i => i.GetText().Item2)));
-		});
-		// // Debug.Log(test.GetSelected());
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
+        panel.AddItems(IMKLParser.GetAllXMLFiles().Select(f => Tuple.Create(f.Name, f.FullName)));
+
+        var drawElementsObs = panel.OnSelectedItemsAsObservable().Select(items =>
+         IMKLParser.Parse(items.Select(i => i.GetText().Item2)));
+
+        drawElementsObs.ObserveOnMainThread().Subscribe(elts => elts.Subscribe(elt => elt.Draw()));
+
+        drawElementsObs.Subscribe(
+                    eltbuttonstream => eltbuttonstream.ToList().Subscribe(
+                        elts => IMKL_Geometry.Draw(elts)));
+
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+
+    }
 }

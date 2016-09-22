@@ -1,30 +1,28 @@
 todo
 
+draw lines on map by adding them as marker and using an offset as position
+
+
+make xml parsing async
+
 split io logic in unzip 
 between classes web zip and xml and imkl
 
-find bug why no marker is drawn-> try to add listener to position change
-position of marker is not converted correctly
-
-ui for xml selection
-
 save refreshtoken encrypted local
+add webservice logic with refreshcode
+
+ui for loading message (use progressnotifier in unirx)
+
+ui for webservice load imkl requests
+
 
 test on android/ios/win
-
-properly draw elements on map
-
-load zips from webservice (wait for chris)
 
 
 increase resolution 
 You can increase the text size stylize map using snazzymaps or mapbox.
 Read sections «Styled Google Maps» and «Using Mapbox» in the documentation.
 
-UI: show list of downloaded xml files
-button to show all downloadable zips (and possibility to download them)
 
-
-add classes for elements from imkl
 	
 

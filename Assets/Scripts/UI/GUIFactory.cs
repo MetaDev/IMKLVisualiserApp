@@ -12,9 +12,10 @@ public class GUIFactory: MonoBehaviour {
 	void Update () {
 		
 	}
-	public static MultiSelectPanel CreateMultiSelectPanel(){
+	public static MultiSelectPanel CreateMultiSelectPanel(Vector2 screenPos){
 		var prefab = Resources.Load("GUI/MultiSelectPanel") as GameObject;
 		var go = GameObject.Instantiate(prefab);
+		go.GetComponent<RectTransform>().position=screenPos;
 		return go.GetComponent<MultiSelectPanel>();
 	}
 

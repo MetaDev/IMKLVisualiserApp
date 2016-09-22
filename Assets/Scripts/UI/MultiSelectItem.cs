@@ -7,6 +7,7 @@ public class MultiSelectItem : MonoBehaviour
 {
     string content;
     string label;
+     Toggle toggle;
 	public Tuple<string,string> GetText(){
 		return Tuple.Create(label,content);
 	}
@@ -15,5 +16,10 @@ public class MultiSelectItem : MonoBehaviour
         this.label = label;
         this.content=content;
     }
-
+    public bool IsSelected(){
+        return toggle.isOn;
+    }
+    void Start(){
+        toggle = GetComponent<Toggle>();
+    }
 }

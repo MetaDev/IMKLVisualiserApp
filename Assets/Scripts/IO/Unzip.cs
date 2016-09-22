@@ -7,7 +7,7 @@ using System.Linq;
 using UniRx;
 using Utility;
 using System.Collections.Generic;
-using IMKL_logic;
+using IMKL_Logic;
 using UnityEditor;
 
 namespace IO
@@ -32,15 +32,15 @@ namespace IO
             var progressNotifier = new ScheduledNotifier<float>();
             progressNotifier.Subscribe(x => UpdatePogressBar(x));
             IObservable<byte[]> download = ObservableWWW.GetAndGetBytes(url, progress: progressNotifier);
-            download.Select((data) =>
-            {
-                File.WriteAllBytes(zipPath, data);
-                unzipAllFiles(zipPath, exportPath);
-                MoveAllExtractedXML(exportPath, IMKLParser.xmlpath);
-                return parseAllXML(IMKLParser.xmlpath);
-            }).ObserveOnMainThread().Subscribe((drawInfo) => IMKL_Geometry.Draw(drawInfo));
-            //start download
-            download.Subscribe();
+            // download.Select((data) =>
+            // {
+            //     File.WriteAllBytes(zipPath, data);
+            //     unzipAllFiles(zipPath, exportPath);
+            //     MoveAllExtractedXML(exportPath, IMKLParser.xmlpath);
+            //     return parseAllXML(IMKLParser.xmlpath);
+            // }).ObserveOnMainThread().Subscribe((drawInfo) => IMKL_Geometry.Draw(drawInfo));
+            // //start download
+            // download.Subscribe();
 
 
         }
@@ -81,17 +81,16 @@ namespace IO
                 }
             });
         }
-        public static Tuple<IEnumerable<Tuple<Pos, string, string, string>>,
-            IEnumerable<Tuple<IEnumerable<Pos>, Color, IMKL_Geometry.LineStyle>>> parseAllXML(string xmlpath)
-        {
-            var info = new DirectoryInfo(xmlpath);
-            //parse all xml
-            //find all xmls in subfolders
-            var xmlInfo = info.GetFiles("*.xml", SearchOption.AllDirectories);
-            Debug.Log("parsing " + xmlInfo.Length + " xml files.");
+        // public static IEnumerable<DrawElement> parseAllXML(string xmlpath)
+        // {
+        //     var info = new DirectoryInfo(xmlpath);
+        //     //parse all xml
+        //     //find all xmls in subfolders
+        //     var xmlInfo = info.GetFiles("*.xml", SearchOption.AllDirectories);
+        //     Debug.Log("parsing " + xmlInfo.Length + " xml files.");
 
-            return IMKLParser.Parse(xmlInfo.Select(f => f.FullName));
-        }
+        //     return IMKLParser.Parse(xmlInfo.Select(f => f.FullName));
+        // }
 
         void unzipAllFiles(string zipPath, string exportPath)
         {

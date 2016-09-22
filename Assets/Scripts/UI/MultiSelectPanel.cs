@@ -22,17 +22,15 @@ public class MultiSelectPanel : MonoBehaviour
     {
         gameObject.SetActive(false);
     }
-	public delegate void MethodOnSelectedItems(IEnumerable<MultiSelectItem> message);
-    public void SetMethodOnSelectedItems(MethodOnSelectedItems methodOnSelectedItems)
+    public IObservable<IEnumerable<MultiSelectItem>> OnSelectedItemsAsObservable()
     {
-        ok.OnClickAsObservable().Subscribe(_=> methodOnSelectedItems(items));
+        return ok.OnClickAsObservable().Select(_=> items.Where(i=>i.IsSelected()));
     }
     public void AddItems(IEnumerable<Tuple<string,string>> texts)
     {
         var prefab = Resources.Load("GUI/MultiSelectItem") as GameObject;
 
         var content = transform.Find("Scroll View").GetComponent<ScrollRect>().content;
-        Debug.Log(content);
         //remove items
         content.transform.DetachChildren();
         items.Clear();
