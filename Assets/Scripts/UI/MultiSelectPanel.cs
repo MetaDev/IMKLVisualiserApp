@@ -12,7 +12,6 @@ public class MultiSelectPanel : MonoBehaviour
     void Start()
     {
         this.transform.SetParent(GameObject.Find("Canvas").transform, false);
-		Debug.Log("brak");
     }
     public void Show(Vector2 screenPos)
     {

@@ -4,6 +4,8 @@ using IO;
 using UnityEngine;
 using System.Linq;
 using UniRx;
+using IMKL_logic;
+
 public class Test : MonoBehaviour {
 
 	// Use this for initialization
@@ -12,7 +14,7 @@ public class Test : MonoBehaviour {
 		var panel =GUIFactory.CreateMultiSelectPanel();
 		panel.AddItems(IMKLParser.GetAllXMLFiles().Select(f => Tuple.Create(f.Name,f.FullName)));
 		panel.SetMethodOnSelectedItems((items)=> {
-			IMKLParser.Parse(items.Select(i => i.GetText().Item2));
+			IMKL_Geometry.Draw(IMKLParser.Parse(items.Select(i => i.GetText().Item2)));
 		});
 		// // Debug.Log(test.GetSelected());
 	}

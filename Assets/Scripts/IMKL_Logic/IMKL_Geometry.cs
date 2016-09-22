@@ -27,8 +27,8 @@ namespace IMKL_logic
             var pointsPos = pointsDrawInfo.Select(point => point.Item1);
             Pos min = new Pos(pointsPos.Min(v => v.x), pointsPos.Min(v => v.y));
             
-            pointsDrawInfo.ForEach(pInfo => IMKL_Geometry.DrawPoint(pInfo.Item1 - min, pInfo.Item2, pInfo.Item3, pInfo.Item4));
-            linesDrawInfo.ForEach(lInfo => IMKL_Geometry.DrawLineString(lInfo.Item1.Select(pos => pos - min), lInfo.Item2, lInfo.Item3));
+            pointsDrawInfo.ForEach(pInfo => IMKL_Geometry.DrawPoint(pInfo.Item1 , pInfo.Item2, pInfo.Item3, pInfo.Item4));
+            //linesDrawInfo.ForEach(lInfo => IMKL_Geometry.DrawLineString(lInfo.Item1.Select(pos => pos), lInfo.Item2, lInfo.Item3));
 
             //set camera of scene to center of geometry
             Pos max = new Pos(pointsPos.Max(v => v.x), pointsPos.Max(v => v.y));
@@ -58,8 +58,9 @@ namespace IMKL_logic
                 return;
             }
             // Create 3D marker, x lon y lat
-            var marker3D = control.AddMarker3D(new Vector2((float)latlon.y, (float)latlon.x), GameObject.Instantiate(go));
-
+            //the game object is a child of map in the scene
+            var marker3D = control.AddMarker3D(latlon, go);
+            marker3D.scale=10;
         }
         public enum LineStyle
         {

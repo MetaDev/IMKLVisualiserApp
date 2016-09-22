@@ -3,7 +3,8 @@ todo
 split io logic in unzip 
 between classes web zip and xml and imkl
 
-find bug why no marker is drawn
+find bug why no marker is drawn-> try to add listener to position change
+position of marker is not converted correctly
 
 ui for xml selection
 
