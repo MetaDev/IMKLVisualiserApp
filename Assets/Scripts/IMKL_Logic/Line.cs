@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using Utility;
 using System.Linq;
+using UniRx;
+using MoreLinq;
+//using More
 namespace IMKL_Logic
 {
     public class Line : DrawElement
     {
 
         IEnumerable<Pos> latLonPos;
-        LineRenderer lineRenderer;
-        float width = 0.2F;
+        float width = 3F;
         public enum Properties
         {
             THEMA, STATUS
@@ -42,7 +44,10 @@ namespace IMKL_Logic
         }
         Color color;
         LineStyle style;
-        public Line(IEnumerable<Pos> lb72Pos, Dictionary<Properties, string> properties) 
+
+        //range of zoom levels for which the elements are visible
+        OnlineMapsRange range = new OnlineMapsRange(15, 20);
+        public Line(IEnumerable<Pos> lb72Pos, Dictionary<Properties, string> properties)
         {
             latLonPos = lb72Pos.Select(pos => GEO.LambertToLatLong(pos));
             this.properties = properties;
@@ -59,13 +64,16 @@ namespace IMKL_Logic
             OnlineMaps.instance.OnChangeZoom += UpdateLine;
         }
         GameObject linestring;
+        LineRenderer lineRenderer;
+
         public override void Draw()
         {
             //first point is position
             linestring = new GameObject();
             linestring.name = "line";
             lineRenderer = linestring.AddComponent<LineRenderer>();
-            Vector3[] points = latLonPos.Select(s => new Vector3((float)s.x, 0, (float)s.y)).ToArray();
+            Vector3[] points = latLonPos.Select(s => OnlineMapsTileSetControl.instance.GetWorldPosition(s)).ToArray();
+
             lineRenderer.material = new Material(Shader.Find("Particles/Additive"));
             lineRenderer.startColor = color;
             lineRenderer.endColor = color;
@@ -84,17 +92,31 @@ namespace IMKL_Logic
         }
         void UpdateLine()
         {
-            // //check if line in scene
-            // //            OnlineMaps.instance.GetTopLeftPosition
-            // double lat;
-            // double lon;
-            // OnlineMaps.instance.GetTopLeftPosition(out lon,out lat);
-            // var topLeft=new Vector2((float)lat,(float)lon);
-            // if (latLonPos.All(pos => pos> )){
+            // if (linestring == null)
+            //     return;
+            //     //lag due to method nlineMapsTileSetControl.instance.GetWorldPosition(
+            // // OnlineMapsTileSetControl.instance.GetWorldPosition(latLonPos.Last());
+            // //draw line if for each endpoints (or it's predecessor) is in mapview 
 
+            // //the list is zipped with itself where the first is skipped and the last element is appended
+            // //which is required for the last not be omitted 
+            // var posInMap = latLonPos.Zip(latLonPos.Skip(1).Pad(latLonPos.Count(), latLonPos.Last()),
+            //        (prev, curr) => (InMapView(prev, range) || InMapView(curr, range)) ? prev : null)
+            //                        .Where(pos => pos != null);
+
+            // if (posInMap.Count() > 0)
+            // {
+            //     var posOnMap = posInMap.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos)).ToArray();
+            //     if (!linestring.activeInHierarchy)
+            //         linestring.SetActive(true);
+
+            //     lineRenderer.SetPositions(posOnMap);
+            //     lineRenderer.numPositions = (posOnMap.Count());
             // }
-            // IEnumerable<Vector3> drawPos = latLonPos.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos));
-            // lineRenderer.SetPositions(drawPos.ToArray());
+            // else
+            // {
+            //     linestring.SetActive(false);
+            // }
         }
 
     }

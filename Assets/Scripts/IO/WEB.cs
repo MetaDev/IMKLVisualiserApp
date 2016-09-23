@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class WEB : MonoBehaviour {
+public class Web : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {

@@ -1,23 +1,23 @@
 todo
 
-draw lines on map by adding them as marker and using an offset as position
-
-
-make xml parsing async
-
-split io logic in unzip 
-between classes web zip and xml and imkl
-
 save refreshtoken encrypted local
 add webservice logic with refreshcode
 
-ui for loading message (use progressnotifier in unirx)
+make xml parsing async
+
+draw lines without lag
+
+split io logic in unzip 
+between classes web zip and imkl 
+
+ui for loading message (use progressnotifier in unirx) (modal window)
 
 ui for webservice load imkl requests
 
 
 test on android/ios/win
 
+replace code where Unirx behaves unpredictably (imklparse->...) with OO code
 
 increase resolution 
 You can increase the text size stylize map using snazzymaps or mapbox.

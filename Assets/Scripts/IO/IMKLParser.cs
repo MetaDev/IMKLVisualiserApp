@@ -46,20 +46,15 @@ namespace IO
             "Cabinet"
         });
         //private static Dictionary<string, XNamespace> imklNamespaces;
-        public static IObservable<DrawElement> Parse(IEnumerable<string> imklXMLFileNames)
+        public static IEnumerable<DrawElement> Parse(IEnumerable<string> imklXMLFileNames)
         {
-            // return imklXMLFileNames.SelectMany(fileName=>{
-            //     XDocument doc = XDocument.Load(fileName);
-            //     return Tuple.Create(ParsePoints(doc),ParseLines(doc));
-            // });
-
-
+            //ToList is necessary because the lists are lazely evaluated 
             return imklXMLFileNames.SelectMany(fileName =>
             {
                 XDocument doc = XDocument.Load(fileName);
                 Debug.Log("XML" + fileName + " parsed");
                 return ParsePoints(doc).Concat(ParseLines(doc));
-            }).ToObservable();
+            }).ToList();
 
         }
 

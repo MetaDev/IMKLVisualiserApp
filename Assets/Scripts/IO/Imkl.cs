@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Zip : MonoBehaviour {
+public class Xml : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {

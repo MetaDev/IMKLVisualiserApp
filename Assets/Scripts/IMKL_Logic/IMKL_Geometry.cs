@@ -25,8 +25,6 @@ namespace IMKL_Logic
             OnlineMaps.instance.zoom = 17;
             OnlineMaps.instance.Redraw();
 
-
-
         }
 
 

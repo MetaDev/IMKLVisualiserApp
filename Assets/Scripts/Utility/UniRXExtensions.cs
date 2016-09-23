@@ -2,22 +2,23 @@
 using System.Collections;
 using UniRx;
 using System;
+using UnityEngine.Networking;
 
-namespace Utility
+namespace UniRx
 {
 
 	public static class UniRXExtensions
 	{
 
-		public static IObservable<byte[]> GetWWW (string url)
+		public static IObservable<byte[]> GetWWW (UnityWebRequest www)
 		{
 			// convert coroutine to IObservable
-			return Observable.FromCoroutine<byte[]> ((observer, cancellationToken) => GetWWWCore (url, observer, cancellationToken));
+			return Observable.FromCoroutine<byte[]> ((observer, cancellationToken) => GetWWWCore (www, observer, cancellationToken));
 		}
 
-		static IEnumerator GetWWWCore (string url, IObserver<byte[]> observer, CancellationToken cancellationToken)
+		static IEnumerator GetWWWCore (UnityWebRequest www, IObserver<byte[]> observer, CancellationToken cancellationToken)
 		{
-			var www = new UnityEngine.WWW (url);
+			yield return www.Send();
 			while (!www.isDone && !cancellationToken.IsCancellationRequested) {
 				yield return null;
 			}
@@ -26,9 +27,9 @@ namespace Utility
 				yield break;
 
 			if (www.error != null) {
-				observer.OnError (new Exception (www.error));
+				observer.OnError (new Exception (www.error+ " " +www.responseCode));
 			} else {
-				observer.OnNext (www.bytes);
+				observer.OnNext (www.downloadHandler.data);
 				observer.OnCompleted ();
 			}
 		}
