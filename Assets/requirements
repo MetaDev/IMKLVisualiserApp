@@ -2,6 +2,8 @@ requirements
 
 settings window 
 
+organized file structure for downloaded ikmls (use MR id) 
+
 config-> login
 -> map choice
 

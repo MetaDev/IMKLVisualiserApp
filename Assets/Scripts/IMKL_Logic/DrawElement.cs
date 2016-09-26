@@ -8,10 +8,20 @@ namespace IMKL_Logic
 {
     public abstract class DrawElement
     {
-        public bool InMapView(Pos latlon, OnlineMapsRange range){
+        static OnlineMapsRange drawRange = new OnlineMapsRange(15, 20);
+        public static OnlineMapsRange DrawRange
+        {
+            get{
+                return drawRange;
+            }
+        }
+
+        //BROL throw away at earliest convenience
+        public bool InMapView(Pos latlon, OnlineMapsRange range)
+        {
 
             float latitude = (float)latlon.y;
-            float longitude = (float) latlon.x;
+            float longitude = (float)latlon.x;
             OnlineMaps api = OnlineMaps.instance;
 
             if (!range.InRange(api.zoom)) return false;
@@ -23,8 +33,8 @@ namespace IMKL_Logic
             if (longitude >= tlx && longitude <= brx && latitude >= bry && latitude <= tly) return true;
             return false;
         }
-       public abstract void Init();
-		
+        public abstract void Init();
+
     }
 }
 

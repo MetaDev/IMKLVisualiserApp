@@ -94,6 +94,7 @@ namespace IMKL_Logic
             //the game object is a child of map in the scene
             var marker3D = control.AddMarker3D(latlon, prefab);
             marker3D.scale = scale;
+            marker3D.range=DrawElement.DrawRange;
         }
 
     }

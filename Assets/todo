@@ -1,9 +1,13 @@
 todo
 
+read page on LINQ
 
-make xml parsing async
+check url to download zips
 
-draw lines without lag
+test on android/ios/win
+
+make line creation async
+
 
 split io logic in unzip 
 between classes web zip and imkl 
@@ -11,11 +15,6 @@ between classes web zip and imkl
 ui for loading message (use progressnotifier in unirx) (modal window)
 
 ui for webservice load imkl requests
-
-
-test on android/ios/win
-
-replace code where Unirx behaves unpredictably (imklparse->...) with OO code
 
 increase resolution 
 You can increase the text size stylize map using snazzymaps or mapbox.

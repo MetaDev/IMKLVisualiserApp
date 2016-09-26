@@ -33,11 +33,8 @@ namespace IMKL_Logic
             {"projected",LineStyle.DASH},
             {"disused",LineStyle.DASHDOT}
         };
-        static IDictionary<LineStyle, Texture2D> styleTextureMap = new Dictionary<LineStyle, Texture2D>(){
-            {LineStyle.DASHDOT,Resources.Load("linestyles/dot_dash") as Texture2D},
-            {LineStyle.DASH,Resources.Load("linestyles/square_dash") as Texture2D}
-        };
-        static Material mat = new Material(Shader.Find("Particles/Multiply"));
+        static IDictionary<LineStyle, Texture2D> styleTextureMap;
+        static Material mat;
         public enum LineStyle
         {
             FULL, DASH, DASHDOT
@@ -46,7 +43,6 @@ namespace IMKL_Logic
         LineStyle style;
 
         //range of zoom levels for which the elements are visible
-        OnlineMapsRange range = new OnlineMapsRange(15, 20);
         public Line(IEnumerable<Pos> lb72Pos, Dictionary<Properties, string> properties)
         {
             latLonPos = lb72Pos.Select(pos => GEO.LambertToLatLong(pos));
@@ -61,14 +57,24 @@ namespace IMKL_Logic
                 Debug.Log("The initiated point is missing some properties.");
             }
 
-
         }
         GameObject linestring;
         LineRenderer lineRenderer;
         IEnumerable<Vector2> relativePos;
+        //init and draw are both methods accesing unity API and as such should always be called from main thread
         public override void Init()
         {
-
+            //load textures
+            if (styleTextureMap == null)
+            {
+                styleTextureMap = new Dictionary<LineStyle, Texture2D>(){
+            {LineStyle.DASHDOT,Resources.Load("linestyles/dot_dash") as Texture2D},
+            {LineStyle.DASH,Resources.Load("linestyles/square_dash") as Texture2D}};
+            }
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("Particles/Multiply"));
+            }
             //first point is position
             linestring = new GameObject();
             linestring.name = "line";
@@ -111,14 +117,14 @@ namespace IMKL_Logic
         void CacheWorldPos()
         {
             WorldPosCache = new Dictionary<int, Vector3[]>();
-            foreach (int r in Enumerable.Range(range.min, range.max))
+            foreach (int r in Enumerable.Range(DrawElement.DrawRange.min, DrawElement.DrawRange.max))
             {
                 WorldPosCache[r] = latLonPos.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos)).ToArray();
             }
         }
         void UpdateRelPos()
         {
-            if (range.InRange(OnlineMaps.instance.zoom))
+            if (DrawElement.DrawRange.InRange(OnlineMaps.instance.zoom))
             {
                 //draw the line from previously cached zoom for relatively correct points
                 if (OnlineMapsTileSetControl.instance != null)

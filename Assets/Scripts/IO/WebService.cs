@@ -8,9 +8,11 @@ using System;
 using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-
+using System.Linq;
 using UniRx;
 using System.Runtime.Serialization.Formatters.Binary;
+using MoreLinq;
+using System.Text.RegularExpressions;
 
 public class WebService : MonoBehaviour
 {
@@ -35,8 +37,6 @@ public class WebService : MonoBehaviour
     static string _clientSecret = "+csxuC35huCwJokbdJBTWu9hrO0nX5G3";
     static string _redirectUri = "https://vianova.com";
 
-    static string _serviceUriAuth = "https://oauth.beta.agiv.be";
-    static string _serviceUriKlip = "https://klip.beta.agiv.be";
     TokenInfo _tokenInfo;
     TokenInfo GetTokenInfo()
     {
@@ -69,7 +69,7 @@ public class WebService : MonoBehaviour
 
     public void LoadTokenInfo()
     {
-        
+
         BinaryFormatter formatter = new BinaryFormatter();
         if (File.Exists(Application.persistentDataPath + "/settings.dat"))
         {
@@ -82,18 +82,20 @@ public class WebService : MonoBehaviour
     }
 
 
-     
+
     /*
     {"access_token":"I-M-_ZdcGpabykvrhRLrvQ==","scope":"MapRequestInitiator UtilityNetworkAuth MapRequestReader 
     UnaOperator UnaReader","expires_in":57600,"refresh_token":"-or4Br2IeTenTBpbuqIfpA=="}
     */
 
     string allMapRequestAPIURL = "https://klip.beta.agiv.be/api/ws/klip/v1/MapRequest/Mri";
+   
+
     public IObservable<string> CallAPIAndLogin(string APIURL)
     {
         IObservable<Unit> obs;
         //if token expired or no token available
-        if (GetTokenInfo() ==null || GetTokenInfo().refreshToken == null)
+        if (GetTokenInfo() == null || GetTokenInfo().refreshToken == null)
         {
             //TODO ask user for authorization code through UI
             var auth_code = "GoUt7Bph9nf9jrsaSQRtmw==";
@@ -129,8 +131,39 @@ public class WebService : MonoBehaviour
 
     public void test()
     {
-        CallAPIAndLogin(allMapRequestAPIURL).Subscribe((text) => Debug.Log(text));
+        CallAPIAndLogin(allMapRequestAPIURL).Subscribe(requests =>
+        {
+            var JArr = JArray.Parse(requests);
+            Debug.Log(requests);
+            //show box with all Mrs
+            var panel = GUIFactory.CreateMultiSelectPanel(new Vector2(50, 50));
+            //modify url to api url which downloads zips
+            string pattern = "v1/";
+            string replacement = "v1/imkl/";
+            Regex rgx = new Regex(pattern);
+            //the request id is in the second to last part of the url
+            panel.AddItems(JArr.Select(url => url["MapRequest"].Value<string>())
+            .Select(urlstring =>
+            Tuple.Create(urlstring.Split('/').Reverse().Skip(1).First(),
+            rgx.Replace(urlstring, replacement))));
 
+            //download selected
+            var drawElementsObs = panel.OnSelectedItemsAsObservable().Subscribe(items =>
+            {
+                items.ForEach(item =>
+                {
+                    Debug.Log(item.GetText().Item2);
+                    UnityWebRequest www = UnityWebRequest.Get(item.GetText().Item2);
+                    UniRXExtensions.GetWWW(www).Subscribe((bytes) =>
+                                            {
+                                                Debug.Log(bytes.Length);
+                                                Debug.Log( System.Text.Encoding.UTF8.GetString(bytes));
+                                            });
+                });
+            });
+        });
+
+        //
     }
 
     //use refresh_token to ask for new acces token
@@ -157,7 +190,6 @@ public class WebService : MonoBehaviour
     {
         var jsontext = System.Text.Encoding.UTF8.GetString(bytes);
         var jObj = JObject.Parse(jsontext);
-        Debug.Log(jsontext);
         var expireDate = DateTime.Now.AddSeconds(jObj["expires_in"].ToObject<int>());
         var access_token = jObj["access_token"].ToObject<string>();
         var refresh_token = jObj["refresh_token"].ToObject<string>();
