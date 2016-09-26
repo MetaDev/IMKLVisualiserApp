@@ -11,7 +11,7 @@ namespace IMKL_Logic
         {
             THEMA, POINTTYPE, STATUS
         }
-        float scale = 10;
+        float scale = 30;
         public Pos latlon
         {
             get;
@@ -70,7 +70,7 @@ namespace IMKL_Logic
 
         }
         //draw is a seperate method because the creation of a point and it's actual drawing should be done on a seperate thread
-        public override void Draw()
+        public override void Init()
         {
             OnlineMapsControlBase3D control = OnlineMaps.instance.GetComponent<OnlineMapsControlBase3D>();
             GameObject prefab=null;

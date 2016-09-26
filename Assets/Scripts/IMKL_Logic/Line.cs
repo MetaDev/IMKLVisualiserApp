@@ -11,7 +11,7 @@ namespace IMKL_Logic
     public class Line : DrawElement
     {
 
-        IEnumerable<Pos> latLonPos;
+        public IEnumerable<Pos> latLonPos;
         float width = 3F;
         public enum Properties
         {
@@ -33,11 +33,11 @@ namespace IMKL_Logic
             {"projected",LineStyle.DASH},
             {"disused",LineStyle.DASHDOT}
         };
-        static IDictionary<LineStyle, string> styleTextureMap = new Dictionary<LineStyle, string>(){
-            {LineStyle.DASHDOT,"dot_dash"},
-            {LineStyle.DASH,"square_dash"}
+        static IDictionary<LineStyle, Texture2D> styleTextureMap = new Dictionary<LineStyle, Texture2D>(){
+            {LineStyle.DASHDOT,Resources.Load("linestyles/dot_dash") as Texture2D},
+            {LineStyle.DASH,Resources.Load("linestyles/square_dash") as Texture2D}
         };
-
+        static Material mat = new Material(Shader.Find("Particles/Multiply"));
         public enum LineStyle
         {
             FULL, DASH, DASHDOT
@@ -60,63 +60,81 @@ namespace IMKL_Logic
             {
                 Debug.Log("The initiated point is missing some properties.");
             }
-            OnlineMaps.instance.OnChangePosition += UpdateLine;
-            OnlineMaps.instance.OnChangeZoom += UpdateLine;
+
+
         }
         GameObject linestring;
         LineRenderer lineRenderer;
-
-        public override void Draw()
+        IEnumerable<Vector2> relativePos;
+        public override void Init()
         {
+
             //first point is position
             linestring = new GameObject();
             linestring.name = "line";
             lineRenderer = linestring.AddComponent<LineRenderer>();
-            Vector3[] points = latLonPos.Select(s => OnlineMapsTileSetControl.instance.GetWorldPosition(s)).ToArray();
-
-            lineRenderer.material = new Material(Shader.Find("Particles/Additive"));
+            lineRenderer.material = mat;
             lineRenderer.startColor = color;
             lineRenderer.endColor = color;
             lineRenderer.startWidth = width;
             lineRenderer.endWidth = width;
-            lineRenderer.numPositions = (points.Count());
+            lineRenderer.numPositions = (latLonPos.Count());
             if (style != LineStyle.FULL)
             {
                 lineRenderer.textureMode = LineTextureMode.Tile;
-                lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-                lineRenderer.material.mainTexture = Resources.Load("linestyles/" + styleTextureMap[style]) as Texture2D;
+                lineRenderer.material.mainTexture = styleTextureMap[style];
                 lineRenderer.material.SetColor("_TintColor", color);
-
             }
-            lineRenderer.SetPositions(points);
+
+            OnlineMaps.instance.OnChangePosition += UpdateAbsPosition;
+            OnlineMaps.instance.OnChangeZoom += UpdateRelPos;
+            OnlineMaps.instance.OnChangeZoom += UpdateAbsPosition;
+            originPos = latLonPos.First();
+            CacheWorldPos();
+            UpdateRelPos();
         }
-        void UpdateLine()
+
+        void UpdateAbsPosition()
         {
-            // if (linestring == null)
-            //     return;
-            //     //lag due to method nlineMapsTileSetControl.instance.GetWorldPosition(
-            // // OnlineMapsTileSetControl.instance.GetWorldPosition(latLonPos.Last());
-            // //draw line if for each endpoints (or it's predecessor) is in mapview 
+            if (originPos != null && prevWorldOriginPos != null)
+            {
+                var worldOriginPos = OnlineMapsTileSetControl.instance.GetWorldPosition(originPos);
+                var delta = worldOriginPos - prevWorldOriginPos;
+                var newWorldPosInMap = WorldPosCache[(OnlineMaps.instance.zoom)].Select(pos => pos + delta).ToArray();
+                lineRenderer.SetPositions(newWorldPosInMap);
+            }
 
-            // //the list is zipped with itself where the first is skipped and the last element is appended
-            // //which is required for the last not be omitted 
-            // var posInMap = latLonPos.Zip(latLonPos.Skip(1).Pad(latLonPos.Count(), latLonPos.Last()),
-            //        (prev, curr) => (InMapView(prev, range) || InMapView(curr, range)) ? prev : null)
-            //                        .Where(pos => pos != null);
+        }
+        public Vector3 prevWorldOriginPos;
+        public Pos originPos;
+        public Dictionary<int, Vector3[]> WorldPosCache;
+        void CacheWorldPos()
+        {
+            WorldPosCache = new Dictionary<int, Vector3[]>();
+            foreach (int r in Enumerable.Range(range.min, range.max))
+            {
+                WorldPosCache[r] = latLonPos.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos)).ToArray();
+            }
+        }
+        void UpdateRelPos()
+        {
+            if (range.InRange(OnlineMaps.instance.zoom))
+            {
+                //draw the line from previously cached zoom for relatively correct points
+                if (OnlineMapsTileSetControl.instance != null)
+                {
+                    //reset GameObject position
+                    //for the relative draw to work
+                    linestring.transform.position = Vector3.zero;
+                    var worldPos = WorldPosCache[(OnlineMaps.instance.zoom)];
+                    //save origins for relative draw
+                    prevWorldOriginPos = worldPos[0];
+                    //update line
+                    lineRenderer.SetPositions(worldPos);
+                }
+            }
 
-            // if (posInMap.Count() > 0)
-            // {
-            //     var posOnMap = posInMap.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos)).ToArray();
-            //     if (!linestring.activeInHierarchy)
-            //         linestring.SetActive(true);
 
-            //     lineRenderer.SetPositions(posOnMap);
-            //     lineRenderer.numPositions = (posOnMap.Count());
-            // }
-            // else
-            // {
-            //     linestring.SetActive(false);
-            // }
         }
 
     }

@@ -88,7 +88,7 @@ public class WebService : MonoBehaviour
     UnaOperator UnaReader","expires_in":57600,"refresh_token":"-or4Br2IeTenTBpbuqIfpA=="}
     */
 
-    string allMapRequestAPIURL = "https://klip.agiv.be/api/ws/klip/v1/MapRequest/Mri";
+    string allMapRequestAPIURL = "https://klip.beta.agiv.be/api/ws/klip/v1/MapRequest/Mri";
     public IObservable<string> CallAPIAndLogin(string APIURL)
     {
         IObservable<Unit> obs;

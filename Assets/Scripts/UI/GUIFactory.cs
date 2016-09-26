@@ -18,5 +18,8 @@ public class GUIFactory: MonoBehaviour {
 		go.GetComponent<RectTransform>().position=screenPos;
 		return go.GetComponent<MultiSelectPanel>();
 	}
+	public static void CreateDrawElements(){
+		
+	}
 
 }
