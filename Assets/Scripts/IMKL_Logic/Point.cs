@@ -25,7 +25,6 @@ namespace IMKL_Logic
             // //convert L72 to lat lon 
             this.properties = properties;
             this.latlon = GEO.LambertToLatLong(pos);
-
         }
         public Pos GetLatLon()
         {

@@ -2,64 +2,68 @@ using UnityEngine;
 using System.IO;
 using ICSharpCode.SharpZipLib.Zip;
 
-/// <summary>
-/// A simple zip file helper class.
-/// </summary>
-public class ZipFile 
+namespace IO
 {
     /// <summary>
-    /// Write the given bytes data under the given filePath. 
-    /// The filePath should be given with its path and filename. (e.g. c:/tmp/test.zip)
+    /// A simple zip file helper class.
     /// </summary>
-    public static void UnZip(string filePath, byte[] data)
+    public class ZipFile
     {
-        using (ZipInputStream s = new ZipInputStream(new MemoryStream(data)))
+        /// <summary>
+        /// Write the given bytes data under the given filePath. 
+        /// The filePath should be given with its path and filename. (e.g. c:/tmp/test.zip)
+        /// </summary>
+        public static void UnZip(string filePath, byte[] data)
         {
-            ZipEntry theEntry;
-            while ((theEntry = s.GetNextEntry()) != null)
+            using (ZipInputStream s = new ZipInputStream(new MemoryStream(data)))
             {
-                #if UNITY_EDITOR
-                Debug.LogFormat("Entry Name: {0}", theEntry.Name);
-                #endif
-
-                string directoryName = Path.GetDirectoryName(theEntry.Name);
-                string fileName = Path.GetFileName(theEntry.Name);
-
-                // create directory
-                if (directoryName.Length > 0)
+                ZipEntry theEntry;
+                while ((theEntry = s.GetNextEntry()) != null)
                 {
-                    var dirPath = Path.Combine (filePath, directoryName);
+#if UNITY_EDITOR
+                    Debug.LogFormat("Entry Name: {0}", theEntry.Name);
+#endif
 
-                    #if UNITY_EDITOR
-                    Debug.LogFormat("CreateDirectory: {0}", dirPath);
-                    #endif
+                    string directoryName = Path.GetDirectoryName(theEntry.Name);
+                    string fileName = Path.GetFileName(theEntry.Name);
 
-                    Directory.CreateDirectory(dirPath);
-                }
-
-                if (fileName != string.Empty)
-                {
-                    // retrieve directory name only from persistence data path.
-                    var entryFilePath = Path.Combine(filePath, theEntry.Name);
-                    using (FileStream streamWriter = File.Create(entryFilePath))
+                    // create directory
+                    if (directoryName.Length > 0)
                     {
-                        int size = 2048;
-                        byte[] fdata = new byte[size];
-                        while (true)
+                        var dirPath = Path.Combine(filePath, directoryName);
+
+#if UNITY_EDITOR
+                        Debug.LogFormat("CreateDirectory: {0}", dirPath);
+#endif
+
+                        Directory.CreateDirectory(dirPath);
+                    }
+
+                    if (fileName != string.Empty)
+                    {
+                        // retrieve directory name only from persistence data path.
+                        var entryFilePath = Path.Combine(filePath, theEntry.Name);
+                        using (FileStream streamWriter = File.Create(entryFilePath))
                         {
-                            size = s.Read(fdata, 0, fdata.Length);
-                            if (size > 0)
+                            int size = 2048;
+                            byte[] fdata = new byte[size];
+                            while (true)
                             {
-                                streamWriter.Write(fdata, 0, size);
-                            }
-                            else
-                            {
-                                break;
+                                size = s.Read(fdata, 0, fdata.Length);
+                                if (size > 0)
+                                {
+                                    streamWriter.Write(fdata, 0, size);
+                                }
+                                else
+                                {
+                                    break;
+                                }
                             }
                         }
                     }
-                }
-            } //end of while
-        } //end of using
+                } //end of while
+            } //end of using
+        }
     }
+
 }
