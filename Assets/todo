@@ -1,20 +1,45 @@
 todo
 
-read page on LINQ
+fix bug with observables in guifactory
 
-check url to download zips
+test login
+
+make the xdocument download an unzip part fo the data flow
 
 test on android/ios/win
 
+center map based on mr 
+
+rewrite serialisation without serialisation engine of unity, use json and json files
+
+centralise serialisation code in serialisation class
+
+output message when error with xml reading occurs (make message popup prefab)
+
+add dropdown to gui and hierachically divide per maprequest
+->save downloaded xmls in maprequest file and serialize
+
+
+add if in editor tags for debug logs and send other logs with mail if not in editor
+
+check inconsistemcy in xmls see dir imkls in vianova and its influence on way they are not drawn
+
+fix line jittering for some files-> direct mouse input
+or central originpos
+
+
 make line creation async
 
+read page on LINQ in vianova bookmark
 
-split io logic in unzip 
-between classes web zip and imkl 
+add button to logout ( and test with new auth code)
 
-ui for loading message (use progressnotifier in unirx) (modal window)
+add wrapper class for unitywebrequest which visualizes response codes with UI
+ui for loading message (use progressnotifier in unirx) (modal window) (for each call)
 
-ui for webservice load imkl requests
+chekc use of tuples as alternative to anonymous class and replace with private class (often in Observable methods)
+only allows tuples if it to pass information inside the same method
+
 
 increase resolution 
 You can increase the text size stylize map using snazzymaps or mapbox.

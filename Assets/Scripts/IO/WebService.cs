@@ -11,7 +11,7 @@ using UniRx;
 using System.Runtime.Serialization.Formatters.Binary;
 using MoreLinq;
 using System.Text.RegularExpressions;
-
+using IMKL_Logic;
 namespace IO
 {
     [Serializable]
@@ -27,6 +27,7 @@ namespace IO
         public string accesToken;
         public DateTime expireDate;
     }
+
     public static class WebService
     {
 
@@ -64,6 +65,7 @@ namespace IO
                 formatter.Serialize(saveFile, tokenInfo);
 
                 saveFile.Close();
+
             }
 
         }
@@ -91,124 +93,119 @@ namespace IO
         }
 
 
-
-        /*
-        {"access_token":"I-M-_ZdcGpabykvrhRLrvQ==","scope":"MapRequestInitiator UtilityNetworkAuth MapRequestReader 
-        UnaOperator UnaReader","expires_in":57600,"refresh_token":"-or4Br2IeTenTBpbuqIfpA=="}
-        */
-
         static string allMapRequestAPIURL = "https://klip.beta.agiv.be/api/ws/klip/v1/MapRequest/Mri";
-
-
-        static public IObservable<byte[]> CallAPIAndLogin(string APIURL, string httpAcceptHeader = "application/json")
+        public static IObservable<UnityWebRequest> LoginWithAuthCode(string authCode)
         {
-            IObservable<Unit> obs;
+            return GetAccesTokenFromAuthCode(authCode);
+        }
+
+        static public IObservable<UnityWebRequest> CallAPIAndLogin(string APIURL, string httpAcceptHeader = "application/json")
+        {
+            IObservable<UnityWebRequest> obs;
             //if token expired or no token available
             if (GetTokenInfo() == null || GetTokenInfo().refreshToken == null)
             {
-                //TODO ask user for authorization code through UI
+                //TODO show message that user should login through menu (use observable error)
                 var auth_code = "uZBRFQh19cCmRrTG+upQEA==";
-                obs = GetAccesTokenFromAuthCode(auth_code).Select(_ => _);
+                obs = GetAccesTokenFromAuthCode(auth_code);
             }
             else if (GetTokenInfo().accesToken == null || GetTokenInfo().expireDate < DateTime.Now)
             {
 
                 Debug.Log("get acces token");
-                obs = SaveAccesTokenFromRefreshToken(GetTokenInfo().refreshToken).Select(_ => _);
+                obs = SaveAccesTokenFromRefreshToken(GetTokenInfo().refreshToken);
+                //TODO subscribe to observable and notify user if response code is not 200
             }
             else
             {
                 Debug.Log("acces token available");
-                obs = Observable.Return<Unit>(Unit.Default);
+                obs = Observable.Return<UnityWebRequest>(null);
             }
             return obs.SelectMany(_ => CallAPI(APIURL, GetTokenInfo().accesToken, httpAcceptHeader));
 
         }
 
+
         //method returns json body API call
-        static IObservable<byte[]> CallAPI(string APIURL, string acces_code, string httpAcceptHeader)
+        static IObservable<UnityWebRequest> CallAPI(string APIURL, string acces_code, string httpAcceptHeader)
         {
             Debug.Log("API called");
+            var progressNotifier = new ScheduledNotifier<float>();
+            progressNotifier.Subscribe(x => Debug.Log(x));
             UnityWebRequest www = UnityWebRequest.Get(APIURL);
             www.SetRequestHeader("Authorization", "Bearer " + acces_code);
             www.SetRequestHeader("Accept", httpAcceptHeader);
-            return UniRXExtensions.GetWWW(www).Select((bytesAndresponseCode) =>
-            {
-                return bytesAndresponseCode.Item1;
-            });
+            return UniRXExtensions.GetWWW(www, progressNotifier).Select((webRequest) =>
+             {
+                 return webRequest;
+             });
         }
-        static string BytesToString(byte[] bytes)
+        public static string BytesToString(byte[] bytes)
         {
             return System.Text.Encoding.UTF8.GetString(bytes);
         }
-        static string EditIMKLURLForZIP(string url)
+        public static IObservable<IList<IMKLPackage>> GetAllIMKLPackage()
+        {
+            return CallAPIAndLogin(WebService.allMapRequestAPIURL).Select(requests =>
+                        JArray.Parse(BytesToString(requests.downloadHandler.data)))
+                        .SelectMany(urls => urls.Select(urlToken => urlToken["MapRequest"].Value<string>()))
+                        .SelectMany(url =>
+                        {
+                            return CallAPIAndLogin(url).Select(webrequest =>
+                            {
+                                var jsontext = WebService.BytesToString(webrequest.downloadHandler.data);
+                                var jObj = Newtonsoft.Json.Linq.JObject.Parse(jsontext);
+                                return new IMKLPackage(
+                                jObj["LocalId"].ToObject<string>(),
+                                jObj["Reference"].ToObject<string>(),
+                                jObj["Status"].ToObject<string>(),
+                                ParseMRZoneFromJObj(jObj),
+                                EditIMKLURLForZIP(url)
+                                );
+                            });
+                        }).ToList();
+        }
+       
+
+        static IEnumerable<Vector2d> ParseMRZoneFromJObj(JObject mapRequest)
+        {
+            return mapRequest["MapRequestZone"]["coordinates"][0].Select(coords => coords.ToObject<double[]>())
+            .Select(coord => new Vector2d(coord[0], coord[1]));
+
+        }
+        public static IObservable<Unit> DownloadXMLForIMKLPackage(IEnumerable<IMKLPackage> packages)
+        {
+            return packages.ToObservable().SelectMany(mr =>
+                        {
+                            Debug.Log("package infor received");
+                            //also return packages which are unavailable but are handled differently in gui
+                            if (mr.Status == IMKLPackage.MapRequestStatus.AVAILABLE)
+                            {
+                                return CallAPIAndLogin(mr.ZIPUrl, "application/zip").Select(webrequest =>
+                                                                {
+                                                                    //save KLBresponse
+                                                                    mr.KLBResponses = IMKLExtractor.ExtractIMKLXML(webrequest.downloadHandler.data,
+                                                                    mr.ID);
+                                                                    return Unit.Default;
+                                                                });
+                            }
+                            return Observable.Return(Unit.Default);
+
+                        });
+        }
+        public static string EditIMKLURLForZIP(string url)
         {
             string pattern = "v1/";
             string replacement = "v1/imkl/";
             Regex rgx = new Regex(pattern);
             return rgx.Replace(url, replacement);
         }
-        static string GetIMKLIDFromURL(string url)
-        {
-            return url.Split('/').Reverse().Skip(1).First();
-        }
-        static public void test()
-        {
-            CallAPIAndLogin(allMapRequestAPIURL).Subscribe(requests =>
-            {
-                var JArr = JArray.Parse(BytesToString(requests));
-                //show box with all Mrs
-                var panel = GUIFactory.CreateMultiSelectPanel(new Vector2(50, 50));
-                //modify url to api url which downloads zips
 
-                //the request id is in the second to last part of the url
-                panel.AddItems(JArr.Select(url => url["MapRequest"].Value<string>())
-                    .Select(urlstring =>
-                    Tuple.Create(GetIMKLIDFromURL(urlstring),
-                    urlstring)));
 
-                //download selected
-                var drawElementsObs = panel.OnSelectedItemsAsObservable().Subscribe(items =>
-                    {
-                        items.ForEach(item =>
-                        {
-                            var url = item.GetText().Item2;
-                            var imklID = item.GetText().Item1;
-                            //Call API for json zip info and zip file data
-                            var obsIMKLRef = CallAPIAndLogin(url).Select(bytes =>
-                                                   {
-                                                       var jsontext = BytesToString(bytes);
-                                                       var jObj = JObject.Parse(jsontext);
-
-                                                       return Tuple.Create(jObj["Reference"].ToObject<string>(),
-                                                       jObj["Status"].ToObject<string>());
-                                                   });
-                            obsIMKLRef.Subscribe(info =>
-                            {
-                                if (info.Item2.EndsWith("available"))
-                                {
-                                    CallAPIAndLogin(EditIMKLURLForZIP(url), "application/zip").Do(bytes =>
-                                                                    {
-                                                                        Debug.Log(info.Item1 + "_" + imklID);
-                                                                        IMKLExtractor.ExtractIMKL(bytes,imklID,
-                                                                        IMKLExtractor.GetSafeFileName(info.Item1 + "_" + imklID));
-                                                                        //show window of all available xml
-                                                                    }).Subscribe(_ => GUIFactory.ShowAllIMKLPanel());
-                                }
-                                //else show message that request is not available yet  TODO                               
-                                else{
-                                    Debug.Log("package not available yet");
-                                }
-                            });
-                        });
-
-                    });
-            });
-        }
 
 
         //use refresh_token to ask for new acces token
-        static IObservable<Unit> SaveAccesTokenFromRefreshToken(string refreshToken)
+        static IObservable<UnityWebRequest> SaveAccesTokenFromRefreshToken(string refreshToken)
         {
             Debug.Log("acces token request");
             WWWForm form = new WWWForm();
@@ -221,10 +218,10 @@ namespace IO
             UnityWebRequest www = UnityWebRequest.Post(url, form);
 
 
-            return UniRXExtensions.GetWWW(www).Select((bytesAndresponseCode) =>
+            return UniRXExtensions.GetWWW(www).Select((webrequest) =>
             {
-                SaveAccesTokenFromBytes(bytesAndresponseCode.Item1);
-                return Unit.Default;
+                SaveAccesTokenFromBytes(webrequest.downloadHandler.data);
+                return webrequest;
             });
         }
         static void SaveAccesTokenFromBytes(byte[] bytes)
@@ -237,7 +234,7 @@ namespace IO
             SetTokenInfo(new TokenInfo(access_token, expireDate, refresh_token));
         }
         //return empty string when complete because the authorization process cannot be done stateless
-        static IObservable<Unit> GetAccesTokenFromAuthCode(string code_authorization)
+        static IObservable<UnityWebRequest> GetAccesTokenFromAuthCode(string code_authorization)
         {
             WWWForm form = new WWWForm();
             form.AddField("client_id", "1030");
@@ -249,10 +246,10 @@ namespace IO
             string url = "https://oauth.beta.agiv.be/authorization/ws/oauth/v2/token";
 
             UnityWebRequest www = UnityWebRequest.Post(url, form);
-            return UniRXExtensions.GetWWW(www).Select((bytesAndresponseCode) =>
+            return UniRXExtensions.GetWWW(www).Select((webrequest) =>
             {
-                SaveAccesTokenFromBytes(bytesAndresponseCode.Item1);
-                return Unit.Default;
+                SaveAccesTokenFromBytes(webrequest.downloadHandler.data);
+                return webrequest;
             });
         }
     }

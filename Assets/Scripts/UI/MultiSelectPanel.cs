@@ -4,29 +4,18 @@ using System.Linq;
 using UnityEngine.UI;
 using System;
 using UniRx;
-public class MultiSelectPanel : MonoBehaviour
+public class MultiSelectPanel : MyPanel
 {
     private List<MultiSelectItem> items = new List<MultiSelectItem>();
     // Use this for initialization
     public Button ok;
-    void Start()
-    {
-        this.transform.SetParent(GameObject.Find("Canvas").transform, false);
-    }
-    public void Show(Vector2 screenPos)
-    {
-        this.GetComponent<RectTransform>().position = screenPos;
-        gameObject.SetActive(true);
-    }
-    public void Close()
-    {
-        gameObject.SetActive(false);
-    }
+   
+    
     public IObservable<IEnumerable<MultiSelectItem>> OnSelectedItemsAsObservable()
     {
         return ok.OnClickAsObservable().Select(_=> items.Where(i=>i.IsSelected()));
     }
-    public void AddItems(IEnumerable<Tuple<string,string>> texts)
+    public void AddItems(IEnumerable<Tuple<string,System.Object>> texts)
     {
         var prefab = Resources.Load("GUI/MultiSelectItem") as GameObject;
 
@@ -39,7 +28,7 @@ public class MultiSelectPanel : MonoBehaviour
         {
             var go = ((GameObject)GameObject.Instantiate(prefab));
             var item = go.GetComponent<MultiSelectItem>();
-            item.SetText(t.Item1,t.Item2);
+            item.SetLabelAndContent(t.Item1,t.Item2);
             return item;
         }));
 

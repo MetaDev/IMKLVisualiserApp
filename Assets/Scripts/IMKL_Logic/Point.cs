@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Utility;
+using System.Linq;
+using System;
+
 namespace IMKL_Logic
 {
 
@@ -12,7 +15,7 @@ namespace IMKL_Logic
             THEMA, POINTTYPE, STATUS
         }
         float scale = 30;
-        public Pos latlon
+        public Vector2d latlon
         {
             get;
             private set;
@@ -20,13 +23,26 @@ namespace IMKL_Logic
 
         Dictionary<Properties, string> properties;
         // Use this for initialization
-        public Point(Pos pos, Dictionary<Properties, string> properties)
+        public Point(Vector2d pos, Dictionary<Properties, string> properties)
         {
-            // //convert L72 to lat lon 
+            //check properties
+            if (!(properties.ContainsKey(Properties.THEMA) &&
+            properties.ContainsKey(Properties.POINTTYPE) &&
+            properties.ContainsKey(Properties.STATUS)))
+            {
+                Debug.Log("Point is missing poperties.");
+                Debug.Log(string.Join(" ", properties.Select(kvp => kvp.ToString() + ":" + kvp.Value).ToArray()));
+            }
+
             this.properties = properties;
             this.latlon = GEO.LambertToLatLong(pos);
         }
-        public Pos GetLatLon()
+        public override string ToString()
+        {
+            return "properties: " + string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
+                + "Position: " + latlon.ToString();
+        }
+        public Vector2d GetLatLon()
         {
             return this.latlon;
         }
@@ -72,7 +88,7 @@ namespace IMKL_Logic
         public override void Init()
         {
             OnlineMapsControlBase3D control = OnlineMaps.instance.GetComponent<OnlineMapsControlBase3D>();
-            GameObject prefab=null;
+            GameObject prefab = null;
             try
             {
                 prefab = GetIconPrefab(properties[Properties.THEMA],
@@ -93,7 +109,8 @@ namespace IMKL_Logic
             //the game object is a child of map in the scene
             var marker3D = control.AddMarker3D(latlon, prefab);
             marker3D.scale = scale;
-            marker3D.range=DrawElement.DrawRange;
+            marker3D.range = DrawElement.DrawRange;
+            Debug.Log(marker3D);
         }
 
     }

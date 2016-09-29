@@ -5,13 +5,17 @@ using Utility;
 using System.Linq;
 using UniRx;
 using MoreLinq;
+using System;
 //using More
 namespace IMKL_Logic
 {
     public class Line : DrawElement
     {
 
-        public IEnumerable<Pos> latLonPos;
+        public IEnumerable<Vector2d> latLonPos{
+            get;
+            private set;
+        }
         float width = 3F;
         public enum Properties
         {
@@ -26,7 +30,7 @@ namespace IMKL_Logic
             {"telecommunications","#68BB1F"},
             {"thermal","#FFC000"},
             {"water","#2166AC"},
-            {"crossTheme","#FEE08B"}
+            {"crosstheme","#FEE08B"}
         };
         static IDictionary<string, LineStyle> lineStyleMap = new Dictionary<string, LineStyle>(){
             {"functional",LineStyle.FULL},
@@ -43,7 +47,7 @@ namespace IMKL_Logic
         LineStyle style;
 
         //range of zoom levels for which the elements are visible
-        public Line(IEnumerable<Pos> lb72Pos, Dictionary<Properties, string> properties)
+        public Line(IEnumerable<Vector2d> lb72Pos, Dictionary<Properties, string> properties)
         {
             latLonPos = lb72Pos.Select(pos => GEO.LambertToLatLong(pos));
             this.properties = properties;
@@ -54,7 +58,8 @@ namespace IMKL_Logic
             }
             catch (KeyNotFoundException e)
             {
-                Debug.Log("The initiated point is missing some properties.");
+                Debug.Log("The initiated Line is missing or has unidentified properties." + e.Message);
+                Debug.Log(string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()));
             }
 
         }
@@ -95,44 +100,52 @@ namespace IMKL_Logic
             OnlineMaps.instance.OnChangePosition += UpdateAbsPosition;
             OnlineMaps.instance.OnChangeZoom += UpdateRelPos;
             OnlineMaps.instance.OnChangeZoom += UpdateAbsPosition;
-            originPos = latLonPos.First();
+            originPos =latLonPos.First();
             CacheWorldPos();
             UpdateRelPos();
+        }
+        public override string ToString(){
+            return "properties: "+ string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine 
+                + "Position" + string.Join(" ",latLonPos.Select(p=>p.ToString()).ToArray());
         }
 
         void UpdateAbsPosition()
         {
-            if (originPos != null && prevWorldOriginPos != null)
+            if (originPos != null && prevWorldOriginPos != null && WorldPosCache.ContainsKey(OnlineMaps.instance.zoom))
             {
-                var worldOriginPos = OnlineMapsTileSetControl.instance.GetWorldPosition(originPos);
+                var worldOriginPos = OnlineMapsTileSetControl.instance.GetWorldPosition(originPos.x,originPos.y);
                 var delta = worldOriginPos - prevWorldOriginPos;
-                var newWorldPosInMap = WorldPosCache[(OnlineMaps.instance.zoom)].Select(pos => pos + delta).ToArray();
+                var newWorldPosInMap = WorldPosCache[OnlineMaps.instance.zoom].Select(pos => pos + delta).ToArray();
                 lineRenderer.SetPositions(newWorldPosInMap);
             }
 
         }
         public Vector3 prevWorldOriginPos;
-        public Pos originPos;
+        public Vector2d originPos;
         public Dictionary<int, Vector3[]> WorldPosCache;
         void CacheWorldPos()
         {
             WorldPosCache = new Dictionary<int, Vector3[]>();
-            foreach (int r in Enumerable.Range(DrawElement.DrawRange.min, DrawElement.DrawRange.max))
+            var prev_zoom = OnlineMaps.instance.zoom;
+            foreach (int zoom in Enumerable.Range(DrawElement.DrawRange.min, DrawElement.DrawRange.max))
             {
-                WorldPosCache[r] = latLonPos.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos)).ToArray();
+                //set the map to appropriate zoom levels
+                OnlineMaps.instance.zoom=zoom;
+                WorldPosCache[zoom] = latLonPos.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos.x,pos.y)).ToArray();
             }
+            OnlineMaps.instance.zoom=prev_zoom;
         }
         void UpdateRelPos()
         {
             if (DrawElement.DrawRange.InRange(OnlineMaps.instance.zoom))
             {
                 //draw the line from previously cached zoom for relatively correct points
-                if (OnlineMapsTileSetControl.instance != null)
+                if (OnlineMapsTileSetControl.instance != null && WorldPosCache.ContainsKey(OnlineMaps.instance.zoom))
                 {
                     //reset GameObject position
                     //for the relative draw to work
                     linestring.transform.position = Vector3.zero;
-                    var worldPos = WorldPosCache[(OnlineMaps.instance.zoom)];
+                    var worldPos = WorldPosCache[OnlineMaps.instance.zoom];
                     //save origins for relative draw
                     prevWorldOriginPos = worldPos[0];
                     //update line

@@ -7,31 +7,48 @@ using UnityEngine.Networking;
 namespace UniRx
 {
 
-	public static class UniRXExtensions
-	{
+    public static class UniRXExtensions
+    {
 
-		public static IObservable<Tuple<byte[],long>> GetWWW (UnityWebRequest www)
-		{
-			// convert coroutine to IObservable
-			return Observable.FromCoroutine<Tuple<byte[],long>> ((observer, cancellationToken) => GetWWWCore (www, observer, cancellationToken));
-		}
+        public static IObservable<UnityWebRequest> GetWWW(UnityWebRequest www, IProgress<float> reportProgress=null)
+        {
+            // convert coroutine to IObservable
+            return Observable.FromCoroutine<UnityWebRequest>((observer, cancellationToken) => GetWWWCore(www, observer,reportProgress, cancellationToken));
+        }
 
-		static IEnumerator GetWWWCore (UnityWebRequest www, IObserver<Tuple<byte[],long>> observer, CancellationToken cancellationToken)
-		{
-			yield return www.Send();
-			while (!www.isDone && !cancellationToken.IsCancellationRequested) {
-				yield return null;
-			}
+        static IEnumerator GetWWWCore(UnityWebRequest www, IObserver<UnityWebRequest> observer, IProgress<float> reportProgress,CancellationToken cancellationToken)
+        {
+            yield return www.Send();
+            while (!www.isDone && !cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    if (reportProgress != null)
+                    {
+						Debug.Log(www.downloadProgress);
+                        reportProgress.Report(www.downloadProgress);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    observer.OnError(ex);
+                    yield break;
+                }
+                yield return null;
+            }
 
-			if (cancellationToken.IsCancellationRequested)
-				yield break;
+            if (cancellationToken.IsCancellationRequested)
+                yield break;
 
-			if (www.error != null) {
-				observer.OnError (new Exception (www.error+ " " +www.responseCode));
-			} else {
-				observer.OnNext (Tuple.Create(www.downloadHandler.data,www.responseCode));
-				observer.OnCompleted ();
-			}
-		}
-	}
+            if (www.error != null)
+            {
+                observer.OnError(new Exception(www.error + " " + www.responseCode));
+            }
+            else
+            {
+                observer.OnNext(www);
+                observer.OnCompleted();
+            }
+        }
+    }
 }

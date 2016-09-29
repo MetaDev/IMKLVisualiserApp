@@ -7,4 +7,6 @@ organized file structure for downloaded ikmls (use MR id)
 config-> login
 -> map choice
 
+a real cool archiving system for all xmls + an archive which saves which maprequests have already been downloaded
+
 toon alle properties per object (parse based on type of property)

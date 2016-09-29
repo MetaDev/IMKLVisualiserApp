@@ -5,21 +5,30 @@ using UnityEngine.UI;
 using UniRx;
 public class MultiSelectItem : MonoBehaviour
 {
-    string content;
-    string label;
-     Toggle toggle;
-	public Tuple<string,string> GetText(){
-		return Tuple.Create(label,content);
-	}
-    public void SetText(string label, string content){
+    public System.Object content
+    {
+        get;
+        private set;
+    }
+    public string label
+    {
+        get;
+        private set;
+    }
+    Toggle toggle;
+
+    public void SetLabelAndContent(string label, System.Object content)
+    {
         base.transform.FindChild("Label").GetComponent<Text>().text = label;
         this.label = label;
-        this.content=content;
+        this.content = content;
     }
-    public bool IsSelected(){
+    public bool IsSelected()
+    {
         return toggle.isOn;
     }
-    void Start(){
+    void Start()
+    {
         toggle = GetComponent<Toggle>();
     }
 }

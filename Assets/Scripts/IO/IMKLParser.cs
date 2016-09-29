@@ -14,19 +14,23 @@ using System.Collections.Generic;
 using System;
 using UniRx;
 using System.IO;
+using MoreLinq;
+using System.Text;
+using System.Xml;
 
 namespace IO
 {
     public static class IMKLParser
     {
-        public static string xmlpath = Application.persistentDataPath + "/imkl_xmls";
-        public static IEnumerable<FileInfo> GetAllXMLFiles()
-        {
-            var info = new DirectoryInfo(xmlpath);
+        //    public static string xmlpath = "/Users/Harald/Downloads" + "/imkl_xmls";
 
-            return info.GetFiles("*.xml", SearchOption.AllDirectories);
+        // public static IEnumerable<FileInfo> GetAllXMLFiles()
+        // {
+        //     var info = new DirectoryInfo(xmlpath);
 
-        }
+        //     return info.GetFiles("*.xml", SearchOption.AllDirectories);
+
+        // }
         public static OnlineMaps map = OnlineMaps.instance;
         static HashSet<string> linesToDraw = new HashSet<string>(new string[] {
             "ElectricityCable",
@@ -46,15 +50,22 @@ namespace IO
             "Cabinet"
         });
         //private static Dictionary<string, XNamespace> imklNamespaces;
-        public static IEnumerable<DrawElement> Parse(IEnumerable<string> imklXMLFileNames)
+        public static IEnumerable<DrawElement> ParseDrawElements(IEnumerable<XDocument> KLBResponses)
         {
-            //ToList is necessary because the lists are lazely evaluated 
-            return imklXMLFileNames.SelectMany(fileName =>
+            try
             {
-                XDocument doc = XDocument.Load(fileName);
-                Debug.Log("XML" + fileName + " parsed");
-                return ParsePoints(doc).Concat(ParseLines(doc));
-            }).ToList();
+                //ToList is necessary because the lists are lazely evaluated 
+                return KLBResponses.SelectMany(xdoc =>
+                {
+                    return ParsePoints(xdoc).Concat(ParseLines(xdoc));
+                }).ToList();
+            }
+            //TODO properly catch xml parse exceptions
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                return null;
+            }
 
         }
 
@@ -85,6 +96,10 @@ namespace IO
                             {Point.Properties.STATUS,point.status}
                         })
                         );
+        }
+        public static string GetKLBResponseID(XDocument KLBResponse)
+        {
+            return KLBResponse.DescendantsByLocalName("FeatureCollection").First().AttributeByLocalName("id").Value;
         }
 
 
