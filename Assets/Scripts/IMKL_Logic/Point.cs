@@ -111,7 +111,6 @@ namespace IMKL_Logic
             var marker3D = control.AddMarker3D(latlon, prefab);
             marker3D.scale = scale;
             marker3D.range = DrawElement.DrawRange;
-            Debug.Log(marker3D);
         }
 
     }

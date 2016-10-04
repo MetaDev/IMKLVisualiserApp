@@ -62,9 +62,7 @@ namespace IMKL_Logic
                 Debug.Log("The initiated Line is missing or has unidentified properties." + e.Message);
                 Debug.Log(string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()));
             }
-            Debug.Log(this.ToString());
-            Debug.Log(this.style);
-
+          
         }
         GameObject linestring;
         LineRenderer lineRenderer;

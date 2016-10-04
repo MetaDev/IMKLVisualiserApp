@@ -25,7 +25,7 @@ public class GUIFactory : MonoBehaviour
         WebService.GetAllIMKLPackage().Select(packages =>
           {
 
-              IMKLPackagePanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package)));
+              IMKLPackagePanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package,package.DownloadIMKL)));
               IMKLPackagePanel.Show();
               //every time ok is clicked the selected items are streamed
               return IMKLPackagePanel.OnSelectedItemsAsObservable();
@@ -36,7 +36,7 @@ public class GUIFactory : MonoBehaviour
                   //after downloading the packages draw their elements
                   Debug.Log("download started");
 
-                  WebService.DownloadXMLForIMKLPackage(package).Where(xmls => xmls != null).Do(xmls => Debug.Log("nr of xmls"+xmls.Count()))
+                  WebService.DownloadXMLForIMKLPackage(package).Where(xmls => xmls != null)
                   .Subscribe(xmls =>
                          {
                              //cache xdocs 
@@ -55,7 +55,6 @@ public class GUIFactory : MonoBehaviour
     {
         if (package != null)
         {
-            // packages.ForEach(package => IMKLParser.ParseDrawElements(package.KLBResponses).ForEach(elt => elt.Init()));
             var drawElements = IMKLParser.ParseDrawElements(package.KLBResponses)
                              .Where(elts => elts != null);
             drawElements.ForEach(elt => elt.Init());
@@ -67,23 +66,7 @@ public class GUIFactory : MonoBehaviour
         }
 
     }
-    public void ShowAllIMKLPanel()
-    {
-        if (Serializer.LoadAllIMKLPackages() == null)
-            return;
-        IMKLPackagePanel.AddItems(Serializer.LoadAllIMKLPackages()
-        .Select(package => Tuple.Create(package.ID, (object)package)));
-        IMKLPackagePanel.Show();
-        //TODO if something went when reading xml output message in where null
-        var drawElementsObs = IMKLPackagePanel.OnSelectedItemsAsObservable().ObserveOn(Scheduler.ThreadPool)
-                    .Select(items => IMKLParser.ParseDrawElements(items
-                    .Select(item => item.content).Cast<XDocument>()))
-                    .Where(elts => elts != null).ObserveOnMainThread().Publish();
-        drawElementsObs.Subscribe(elts => elts.ForEach(elt => elt.Init()));
-        drawElementsObs.Subscribe(elts => MapHelper.ZoomAndCenterOnElements(elts));
-
-        drawElementsObs.Connect();
-    }
+ 
 
     public void LoginPress()
     {

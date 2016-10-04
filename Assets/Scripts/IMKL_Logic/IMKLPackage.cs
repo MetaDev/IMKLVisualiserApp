@@ -29,17 +29,16 @@ namespace IMKL_Logic
         {
             AVAILABLE, NONAVAILABLE
         }
-        public MapRequestStatus Status
-        {
-            get;
-            private set;
-        }
+        private MapRequestStatus Status;
+     
         public IEnumerable<Vector2d> MapRequestZone
         {
             get;
             private set;
         }
-
+        public bool DownloadIMKL{
+            get{return (Status == IMKLPackage.MapRequestStatus.AVAILABLE);}
+        }
         public IEnumerable<XDocument> KLBResponses
         {
             get;

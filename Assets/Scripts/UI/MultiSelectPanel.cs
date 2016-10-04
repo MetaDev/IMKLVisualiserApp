@@ -9,13 +9,13 @@ public class MultiSelectPanel : MyPanel
     private List<MultiSelectItem> items = new List<MultiSelectItem>();
     // Use this for initialization
     public Button ok;
-   
-    
+
+
     public IObservable<IEnumerable<MultiSelectItem>> OnSelectedItemsAsObservable()
     {
-        return ok.OnClickAsObservable().Select(_=> items.Where(i=>i.IsSelected()));
+        return ok.OnClickAsObservable().Select(_ => items.Where(i => i.IsSelected()));
     }
-    public void AddItems(IEnumerable<Tuple<string,System.Object>> texts)
+    public void AddItems(IEnumerable<Tuple<string, System.Object, bool>> texts)
     {
         var prefab = Resources.Load("GUI/MultiSelectItem") as GameObject;
 
@@ -28,7 +28,8 @@ public class MultiSelectPanel : MyPanel
         {
             var go = ((GameObject)GameObject.Instantiate(prefab));
             var item = go.GetComponent<MultiSelectItem>();
-            item.SetLabelAndContent(t.Item1,t.Item2);
+            item.SetLabelAndContent(t.Item1, t.Item2);
+            item.Interactable=(t.Item3);
             return item;
         }));
 

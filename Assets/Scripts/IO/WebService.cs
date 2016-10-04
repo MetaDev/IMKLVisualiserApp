@@ -175,10 +175,8 @@ namespace IO
         {
             Debug.Log("method called");
             //also return packages which are unavailable but are handled differently in gui
-            if (package.Status == IMKLPackage.MapRequestStatus.AVAILABLE)
+            if (package.DownloadIMKL)
             {
-                                                                Debug.Log("exec");
-
                 return CallAPIAndLogin(package.ZIPUrl, "application/zip").Select(webrequest =>
                             {
                                 //save KLBresponse
@@ -186,8 +184,6 @@ namespace IO
                                                 package.ID).ToList();
                             });
             }
-                                                            Debug.Log("null");
-
             return Observable.Return<List<XDocument>>(null);
 
 
