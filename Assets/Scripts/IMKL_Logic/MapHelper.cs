@@ -14,13 +14,12 @@ namespace IMKL_Logic
         }
         public static void ZoomAndCenterOnElements(IEnumerable<DrawElement> pointsAndlines)
         {
-            Debug.Log(string.Join(" ",pointsAndlines.Select(p => p.ToString()).ToArray()));
-            Debug.Log("map centering starts");
+           
             //draw all geometry at the center of the scene, defined by all points
             //.Select(p=>p) necessary to avoid InvalidOperationException for some xml files
             var pointsPos = pointsAndlines.OfType<Point>().Select(point => point.GetLatLon());
             Debug.Log(pointsAndlines.OfType<Point>().Count());
-             Debug.Log(string.Join(" ", pointsAndlines.OfType<Point>().Select(p => p.ToString()).ToArray()));
+            Debug.Log("points and lines: " + string.Join(" ", pointsAndlines.OfType<Point>().Select(p => p.ToString()).ToArray()));
             Vector2d min = new Vector2d(pointsPos.Min(v => v.x), pointsPos.Min(v => v.y));
             //set camera of scene to center of geometry
             Vector2d max = new Vector2d(pointsPos.Max(v => v.x), pointsPos.Max(v => v.y));

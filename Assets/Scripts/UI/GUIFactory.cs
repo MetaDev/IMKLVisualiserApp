@@ -22,47 +22,44 @@ public class GUIFactory : MonoBehaviour
     {
         //TODO something goes wrong 
 
-        var packageObs = WebService.GetAllIMKLPackage().Select(packages =>
+        WebService.GetAllIMKLPackage().Select(packages =>
           {
 
-              IMKLPackagePanel.AddItems(packages.Select(package => Tuple.Create(package.ID, (object)package)));
+              IMKLPackagePanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package)));
               IMKLPackagePanel.Show();
               //every time ok is clicked the selected items are streamed
               return IMKLPackagePanel.OnSelectedItemsAsObservable();
-          }).Select(itemsObs=> itemsObs.Select(items => items.Select(item => item.content).Cast<IMKLPackage>()));
-
-        var packageXMLObs = packageObs.Select(packageObser =>
-            {
-                return packageObser.Select(packages => WebService.DownloadXMLForIMKLPackage(packages));
-                //download XMLs in packages
-            }).Do(_ => Debug.Log("packages loaded"));
-        packageXMLObs.Zip(packageObs, (_, packages) => packages).Do(_ => Debug.Log("zipstart loaded")).Subscribe(ackageObser =>
+          }).Subscribe(itemsObs => itemsObs.Subscribe(items =>
           {
-              Debug.Log("drawing starts");
+              items.Select(item => item.content).Cast<IMKLPackage>().ForEach(package =>
+              {
+                  //after downloading the packages draw their elements
+                  Debug.Log("download started");
 
-              //Serializer.SaveAllIMKLPackages(mrs);
-              ackageObser.Subscribe(packages=>{
-                  Debug.Log(packages.Count());
-                  DrawPackages(packages);
+                  WebService.DownloadXMLForIMKLPackage(package).Where(xmls => xmls != null).Do(xmls => Debug.Log("nr of xmls"+xmls.Count()))
+                  .Subscribe(xmls =>
+                         {
+                             //cache xdocs 
+                             package.KLBResponses=xmls;
+                             DrawPackages(package);
+                         });
               });
-          });
-        //TODO Add loading screen 
-        //TODO serialize IMKLPackages
-
+          }));
+        //download XMLs in packages
     }
-    void DrawPackages(IEnumerable<IMKLPackage> packages)
+
+    //TODO Add loading screen 
+    //TODO serialize IMKLPackages
+
+    void DrawPackages(IMKLPackage package)
     {
-        if (packages != null)
+        if (package != null)
         {
-            packages.ForEach(package => IMKLParser.ParseDrawElements(package.KLBResponses).ForEach(elt => elt.Init()));
-            // var parseElemenstObs = packages.ToObservable().ObserveOn(Scheduler.ThreadPool)
-            //                  .Select(package => IMKLParser.ParseDrawElements(package.KLBResponses))
-            //                  .Where(elts => elts != null).ObserveOnMainThread().Publish();
-            // parseElemenstObs.Subscribe(_ => Debug.Log(_));
-            // parseElemenstObs.Subscribe(elts => elts.ForEach(elt => elt.Init()));
-            // parseElemenstObs.Subscribe(elts => MapHelper.ZoomAndCenterOnElements(elts));
-            // parseElemenstObs.Connect();
-            Debug.Log("drawing done"+packages.Count());
+            // packages.ForEach(package => IMKLParser.ParseDrawElements(package.KLBResponses).ForEach(elt => elt.Init()));
+            var drawElements = IMKLParser.ParseDrawElements(package.KLBResponses)
+                             .Where(elts => elts != null);
+            drawElements.ForEach(elt => elt.Init());
+            MapHelper.ZoomAndCenterOnElements(drawElements);
         }
         else
         {

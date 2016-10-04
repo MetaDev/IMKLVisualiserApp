@@ -61,6 +61,8 @@ namespace IMKL_Logic
                 Debug.Log("The initiated Line is missing or has unidentified properties." + e.Message);
                 Debug.Log(string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()));
             }
+            Debug.Log(this.ToString());
+            Debug.Log( this.style);
 
         }
         GameObject linestring;
@@ -92,6 +94,7 @@ namespace IMKL_Logic
             lineRenderer.numPositions = (latLonPos.Count());
             if (style != LineStyle.FULL)
             {
+                Debug.Log("different style");
                 lineRenderer.textureMode = LineTextureMode.Tile;
                 lineRenderer.material.mainTexture = styleTextureMap[style];
                 lineRenderer.material.SetColor("_TintColor", color);

@@ -54,8 +54,9 @@ namespace IO
         {
             try
             {
+                Debug.Log(KLBResponses.Count());
                 //ToList is necessary because the lists are lazely evaluated 
-                return KLBResponses.SelectMany(xdoc =>
+                return KLBResponses.Where(xdoc=>xdoc!=null).SelectMany(xdoc =>
                 {
                     return ParsePoints(xdoc).Concat(ParseLines(xdoc));
                 }).ToList();

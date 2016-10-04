@@ -12,6 +12,8 @@ using System.Runtime.Serialization.Formatters.Binary;
 using MoreLinq;
 using System.Text.RegularExpressions;
 using IMKL_Logic;
+using System.Xml.Linq;
+
 namespace IO
 {
     [Serializable]
@@ -111,14 +113,11 @@ namespace IO
             }
             else if (GetTokenInfo().accesToken == null || GetTokenInfo().expireDate < DateTime.Now)
             {
-
-                Debug.Log("get acces token");
                 obs = SaveAccesTokenFromRefreshToken(GetTokenInfo().refreshToken);
                 //TODO subscribe to observable and notify user if response code is not 200
             }
             else
             {
-                Debug.Log("acces token available");
                 obs = Observable.Return<UnityWebRequest>(null);
             }
             return obs.SelectMany(_ => CallAPI(APIURL, GetTokenInfo().accesToken, httpAcceptHeader));
@@ -129,7 +128,6 @@ namespace IO
         //method returns json body API call
         static IObservable<UnityWebRequest> CallAPI(string APIURL, string acces_code, string httpAcceptHeader)
         {
-            Debug.Log("API called");
             var progressNotifier = new ScheduledNotifier<float>();
             progressNotifier.Subscribe(x => Debug.Log(x));
             UnityWebRequest www = UnityWebRequest.Get(APIURL);
@@ -165,7 +163,7 @@ namespace IO
                             });
                         }).ToList();
         }
-       
+
 
         static IEnumerable<Vector2d> ParseMRZoneFromJObj(JObject mapRequest)
         {
@@ -173,25 +171,26 @@ namespace IO
             .Select(coord => new Vector2d(coord[0], coord[1]));
 
         }
-        public static IObservable<Unit> DownloadXMLForIMKLPackage(IEnumerable<IMKLPackage> packages)
+        public static IObservable<List<XDocument>> DownloadXMLForIMKLPackage(IMKLPackage package)
         {
-            return packages.ToObservable().SelectMany(mr =>
-                        {
-                            Debug.Log("package infor received");
-                            //also return packages which are unavailable but are handled differently in gui
-                            if (mr.Status == IMKLPackage.MapRequestStatus.AVAILABLE)
-                            {
-                                return CallAPIAndLogin(mr.ZIPUrl, "application/zip").Select(webrequest =>
-                                                                {
-                                                                    //save KLBresponse
-                                                                    mr.KLBResponses = IMKLExtractor.ExtractIMKLXML(webrequest.downloadHandler.data,
-                                                                    mr.ID);
-                                                                    return Unit.Default;
-                                                                });
-                            }
-                            return Observable.Return(Unit.Default);
+            Debug.Log("method called");
+            //also return packages which are unavailable but are handled differently in gui
+            if (package.Status == IMKLPackage.MapRequestStatus.AVAILABLE)
+            {
+                                                                Debug.Log("exec");
 
-                        });
+                return CallAPIAndLogin(package.ZIPUrl, "application/zip").Select(webrequest =>
+                            {
+                                //save KLBresponse
+                                return IMKLExtractor.ExtractIMKLXML(webrequest.downloadHandler.data,
+                                                package.ID).ToList();
+                            });
+            }
+                                                            Debug.Log("null");
+
+            return Observable.Return<List<XDocument>>(null);
+
+
         }
         public static string EditIMKLURLForZIP(string url)
         {

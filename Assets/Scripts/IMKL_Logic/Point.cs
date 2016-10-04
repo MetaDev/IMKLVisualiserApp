@@ -36,6 +36,7 @@ namespace IMKL_Logic
 
             this.properties = properties;
             this.latlon = GEO.LambertToLatLong(pos);
+
         }
         public override string ToString()
         {
@@ -61,7 +62,7 @@ namespace IMKL_Logic
                 GameObject go = new GameObject();
                 go.name = "point";
                 SpriteRenderer renderer = go.AddComponent<SpriteRenderer>();
-                go.transform.eulerAngles = new Vector3(270, 0, 0);
+                go.transform.eulerAngles = new Vector3(180, 0, 0);
                 go.transform.localScale = new Vector3(100, 100, 0);
                 Texture2D tex = Resources.Load("icons/" + name, typeof(Texture2D)) as Texture2D;
                 //appurtenance is the default icon if not found

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using UniRx;
 public class MultiSelectItem : MonoBehaviour
 {
-    public System.Object content
+    public object content
     {
         get;
         private set;
@@ -17,7 +17,7 @@ public class MultiSelectItem : MonoBehaviour
     }
     Toggle toggle;
 
-    public void SetLabelAndContent(string label, System.Object content)
+    public void SetLabelAndContent(string label, object content)
     {
         base.transform.FindChild("Label").GetComponent<Text>().text = label;
         this.label = label;
