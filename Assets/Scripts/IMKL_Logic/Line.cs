@@ -12,7 +12,8 @@ namespace IMKL_Logic
     public class Line : DrawElement
     {
 
-        public IEnumerable<Vector2d> latLonPos{
+        public IEnumerable<Vector2d> latLonPos
+        {
             get;
             private set;
         }
@@ -62,7 +63,7 @@ namespace IMKL_Logic
                 Debug.Log(string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()));
             }
             Debug.Log(this.ToString());
-            Debug.Log( this.style);
+            Debug.Log(this.style);
 
         }
         GameObject linestring;
@@ -80,7 +81,7 @@ namespace IMKL_Logic
             }
             if (mat == null)
             {
-                mat = new Material(Shader.Find("Particles/Multiply"));
+                mat = new Material(Shader.Find("Mobile/Particles/Multiply"));
             }
             //first point is position
             linestring = new GameObject();
@@ -94,29 +95,42 @@ namespace IMKL_Logic
             lineRenderer.numPositions = (latLonPos.Count());
             if (style != LineStyle.FULL)
             {
-                Debug.Log("different style");
                 lineRenderer.textureMode = LineTextureMode.Tile;
                 lineRenderer.material.mainTexture = styleTextureMap[style];
                 lineRenderer.material.SetColor("_TintColor", color);
+                if (style == LineStyle.DASH)
+                {
+                    //tiling 0.2 0.4, width 2*
+                    lineRenderer.material.mainTextureScale = new Vector2(0.2f, 0.4f);
+                    lineRenderer.startWidth = width * 2;
+                    lineRenderer.endWidth = width * 2;
+
+                }
+                else if (style == LineStyle.DASHDOT)
+                {
+                    //tileing 0.1 0.1
+                    lineRenderer.material.mainTextureScale = new Vector2(0.1f, 0.1f);
+                }
             }
 
             OnlineMaps.instance.OnChangePosition += UpdateAbsPosition;
             OnlineMaps.instance.OnChangeZoom += UpdateRelPos;
             OnlineMaps.instance.OnChangeZoom += UpdateAbsPosition;
-            originPos =latLonPos.First();
+            originPos = latLonPos.First();
             CacheWorldPos();
             UpdateRelPos();
         }
-        public override string ToString(){
-            return "properties: "+ string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine 
-                + "Position" + string.Join(" ",latLonPos.Select(p=>p.ToString()).ToArray());
+        public override string ToString()
+        {
+            return "properties: " + string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
+                + "Position" + string.Join(" ", latLonPos.Select(p => p.ToString()).ToArray());
         }
 
         void UpdateAbsPosition()
         {
             if (originPos != null && prevWorldOriginPos != null && WorldPosCache.ContainsKey(OnlineMaps.instance.zoom))
             {
-                var worldOriginPos = OnlineMapsTileSetControl.instance.GetWorldPosition(originPos.x,originPos.y);
+                var worldOriginPos = OnlineMapsTileSetControl.instance.GetWorldPosition(originPos.x, originPos.y);
                 var delta = worldOriginPos - prevWorldOriginPos;
                 var newWorldPosInMap = WorldPosCache[OnlineMaps.instance.zoom].Select(pos => pos + delta).ToArray();
                 lineRenderer.SetPositions(newWorldPosInMap);
@@ -133,10 +147,10 @@ namespace IMKL_Logic
             foreach (int zoom in Enumerable.Range(DrawElement.DrawRange.min, DrawElement.DrawRange.max))
             {
                 //set the map to appropriate zoom levels
-                OnlineMaps.instance.zoom=zoom;
-                WorldPosCache[zoom] = latLonPos.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos.x,pos.y)).ToArray();
+                OnlineMaps.instance.zoom = zoom;
+                WorldPosCache[zoom] = latLonPos.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos.x, pos.y)).ToArray();
             }
-            OnlineMaps.instance.zoom=prev_zoom;
+            OnlineMaps.instance.zoom = prev_zoom;
         }
         void UpdateRelPos()
         {
