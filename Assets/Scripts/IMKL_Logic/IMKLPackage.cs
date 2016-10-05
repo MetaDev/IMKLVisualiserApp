@@ -32,13 +32,15 @@ namespace IMKL_Logic
         {
             AVAILABLE, NONAVAILABLE
         }
-        private MapRequestStatus Status;
+        [JsonIgnore]
+        private MapRequestStatus Status = MapRequestStatus.AVAILABLE;
 
         public IEnumerable<Vector2d> MapRequestZone
         {
             get;
             private set;
         }
+        [JsonIgnore]
         public bool DownloadIMKL
         {
             get { return (Status == IMKLPackage.MapRequestStatus.AVAILABLE); }
@@ -48,8 +50,9 @@ namespace IMKL_Logic
             get;
             set;
         }
-        public IEnumerable<XDocument> GetKLBXML(){
-            return KLBResponses.Select(resp=>XDocument.Parse(resp));
+        public IEnumerable<XDocument> GetKLBXML()
+        {
+            return KLBResponses.Select(resp => XDocument.Parse(resp));
         }
         public override string ToString()
         {
@@ -61,7 +64,11 @@ namespace IMKL_Logic
             this.ZIPUrl = zipURL;
             this.ID = id;
             this.Reference = reference;
-            this.Status = status.EndsWith("available") ? MapRequestStatus.AVAILABLE : MapRequestStatus.NONAVAILABLE;
+            //throws nullpointer becuase status is not serialised
+            if (status != null)
+            {
+                this.Status = status.EndsWith("available") ? MapRequestStatus.AVAILABLE : MapRequestStatus.NONAVAILABLE;
+            }
             this.MapRequestZone = mapRequestZone;
         }
 

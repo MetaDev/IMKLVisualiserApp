@@ -39,6 +39,7 @@ namespace IO
         public static void SaveIMKLPackages(IEnumerable<IMKLPackage> packages)
         {
             AddPackages(packages);
+            Debug.Log(_IMKLPackages.Count());
             SerialiseObject(_IMKLPackages, PackagesFileName);
         }
         public static IEnumerable<IMKLPackage> LoadAllIMKLPackages()
@@ -53,7 +54,7 @@ namespace IO
         {
             if (packages != null)
             {
-                Serializer._IMKLPackages = Serializer._IMKLPackages.Concat(packages).DistinctBy(package=>package.ID);
+                _IMKLPackages = _IMKLPackages.Concat(packages).DistinctBy(package=>package.ID);
             }
         }
         public static IObservable<IEnumerable<IMKLPackage>> PackagesChanged()
