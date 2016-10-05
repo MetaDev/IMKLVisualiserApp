@@ -16,16 +16,14 @@ public class MultiSelectItem : MonoBehaviour
         private set;
     }
     Toggle toggle;
-    public bool Interactable
-    {
-         get;
-         set;
-    }
-    public void SetLabelAndContent(string label, object content)
+    bool Interactable;
+    ToggleGroup Group;
+    public void Init(string label, object content,bool interactable=true,ToggleGroup group=null)
     {
         base.transform.FindChild("Label").GetComponent<Text>().text = label;
         this.label = label;
         this.content = content;
+        this.Interactable=interactable;
     }
     public bool IsSelected()
     {
@@ -36,6 +34,9 @@ public class MultiSelectItem : MonoBehaviour
         toggle = GetComponent<Toggle>();
         
         toggle.interactable = Interactable;
+        if (Group!=null){
+            toggle.group=Group;
+        }
 
     }
 }

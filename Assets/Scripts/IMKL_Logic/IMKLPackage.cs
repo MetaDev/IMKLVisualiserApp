@@ -2,8 +2,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Xml.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UniRx;
 using UnityEngine;
+using System.Linq;
 
 namespace IMKL_Logic
 {
@@ -30,19 +33,23 @@ namespace IMKL_Logic
             AVAILABLE, NONAVAILABLE
         }
         private MapRequestStatus Status;
-     
+
         public IEnumerable<Vector2d> MapRequestZone
         {
             get;
             private set;
         }
-        public bool DownloadIMKL{
-            get{return (Status == IMKLPackage.MapRequestStatus.AVAILABLE);}
+        public bool DownloadIMKL
+        {
+            get { return (Status == IMKLPackage.MapRequestStatus.AVAILABLE); }
         }
-        public IEnumerable<XDocument> KLBResponses
+        public IEnumerable<String> KLBResponses
         {
             get;
             set;
+        }
+        public IEnumerable<XDocument> GetKLBXML(){
+            return KLBResponses.Select(resp=>XDocument.Parse(resp));
         }
         public override string ToString()
         {

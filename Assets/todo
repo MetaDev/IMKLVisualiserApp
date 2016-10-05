@@ -1,44 +1,34 @@
 todo
 
-fix bug with observables in guifactory
-
-test login
-
-make the xdocument download  part fo the data flow when downloading and saving imkls
-
-test on android/ios/win
-
-center map based on mr 
 
 rewrite serialisation without serialisation engine of unity, use json and json files
 
-centralise serialisation code in serialisation class
+UI
+
+when unzipping only work with byte arrays no writing of files->refactor whole imkl extractor wihout file writing
+remove double subscribe in GUIfactory method LoadPacketInfo
+make whole packaging stuff async
+
+test on android/ios/win
+
+download progress UI
+add wrapper class for unitywebrequest which visualizes response codes with UI
+ui for loading message (use progressnotifier in unirx) (modal window) (for each call)
+catch weberrors verbally
+
+
 
 output message when error with xml reading occurs (make message popup prefab)
-
-add dropdown to gui and hierachically divide per maprequest
-->save downloaded xmls in maprequest file and serialize
 
 
 add if in editor tags for debug logs and send other logs with mail if not in editor
 
-check inconsistemcy in xmls see dir imkls in vianova and its influence on way they are not drawn
-
-fix line jittering for some files-> direct mouse input
-or central originpos
-
-
-make line creation async
+draw markers similar to lines such that they can be drawn over the lines
 
 read page on LINQ in vianova bookmark
 
-add button to logout ( and test with new auth code)
+clean up draw and ui elements if no longer used
 
-add wrapper class for unitywebrequest which visualizes response codes with UI
-ui for loading message (use progressnotifier in unirx) (modal window) (for each call)
-
-chekc use of tuples as alternative to anonymous class and replace with private class (often in Observable methods)
-only allows tuples if it to pass information inside the same method
 
 
 increase resolution 

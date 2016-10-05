@@ -47,7 +47,7 @@ namespace IO
             }
         }
 
-        static List<XDocument> GetAllXDocuments(string unzipPath)
+        static List<string> GetAllXDocuments(string unzipPath)
         {
             //TODO pass non parsable xmls to UI Warning message
             var info = new DirectoryInfo(unzipPath);
@@ -57,7 +57,7 @@ namespace IO
             {
                 try
                 {
-                    return XDocument.Load(xmlFile.FullName);
+                    return XDocument.Load(xmlFile.FullName).ToString();
                 }
                 catch (XmlException e)
                 {
@@ -85,7 +85,7 @@ namespace IO
             }
         }
 
-        public static List<XDocument> ExtractIMKLXML(byte[] zipData, string imklID)
+        public static List<string> ExtractIMKLXML(byte[] zipData, string imklID)
         {
             string zipPath = Application.temporaryCachePath + "/zip";
             string unzipPath = Application.temporaryCachePath + "/unzip";

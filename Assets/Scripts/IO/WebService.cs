@@ -16,8 +16,7 @@ using System.Xml.Linq;
 
 namespace IO
 {
-    [Serializable]
-    class TokenInfo
+    public class TokenInfo
     {
         public TokenInfo(string access_token, DateTime expireDate, string refresh_token)
         {
@@ -34,93 +33,47 @@ namespace IO
     {
 
 
+
         public static Uri CombineUri(string baseUri, string relativeOrAbsoluteUri)
         {
             return new Uri(new Uri(baseUri), relativeOrAbsoluteUri);
         }
         static string _clientId = "1030";
-        static string _clientSecret = "+csxuC35huCwJokbdJBTWu9hrO0nX5G3";
         static string _redirectUri = "https://vianova.com";
-        static TokenInfo _tokenInfo;
-        static TokenInfo GetTokenInfo()
-        {
-            if (_tokenInfo == null)
-            {
-                LoadTokenInfo();
-            }
-            return _tokenInfo;
-        }
-        static void SetTokenInfo(TokenInfo tokeInfo)
-        {
-            _tokenInfo = tokeInfo;
-            SaveData(tokeInfo);
+       
 
-        }
-        static void SaveData(TokenInfo tokenInfo)
-        {
-            if (tokenInfo != null)
-            {
-                BinaryFormatter formatter = new BinaryFormatter();
-                //creates or overwrites file
-                FileStream saveFile = File.Create(Application.persistentDataPath + "/settings.dat");
-
-                formatter.Serialize(saveFile, tokenInfo);
-
-                saveFile.Close();
-
-            }
-
-        }
-
-        static public void LoadTokenInfo()
-        {
-
-            BinaryFormatter formatter = new BinaryFormatter();
-            if (File.Exists(Application.persistentDataPath + "/settings.dat"))
-            {
-                FileStream saveFile = File.Open(Application.persistentDataPath + "/settings.dat", FileMode.Open);
-                try
-                {
-                    _tokenInfo = (TokenInfo)formatter.Deserialize(saveFile);
-                    Debug.Log(GetTokenInfo().accesToken);
-                }
-                catch (TypeLoadException e)
-                {
-                    Debug.Log("token not found");
-                }
-
-                saveFile.Close();
-            }
-            Debug.Log("token loaded");
-        }
 
 
         static string allMapRequestAPIURL = "https://klip.beta.agiv.be/api/ws/klip/v1/MapRequest/Mri";
         public static IObservable<UnityWebRequest> LoginWithAuthCode(string authCode)
         {
-            return GetAccesTokenFromAuthCode(authCode);
+            return LoadAccesTokenFromAuthCode(authCode);
         }
 
         static public IObservable<UnityWebRequest> CallAPIAndLogin(string APIURL, string httpAcceptHeader = "application/json")
         {
             IObservable<UnityWebRequest> obs;
             //if token expired or no token available
-            if (GetTokenInfo() == null || GetTokenInfo().refreshToken == null)
+            if (Serializer.LoadToken() == null || Serializer.LoadToken().refreshToken == null)
             {
-                //TODO show message that user should login through menu (use observable error)
-                var auth_code = "uZBRFQh19cCmRrTG+upQEA==";
-                obs = GetAccesTokenFromAuthCode(auth_code);
+                obs = Observable.Throw<UnityWebRequest>(new Exception("Application not logged in."));
             }
-            else if (GetTokenInfo().accesToken == null || GetTokenInfo().expireDate < DateTime.Now)
+            else if (Serializer.LoadToken().accesToken == null || Serializer.LoadToken().expireDate < DateTime.Now)
             {
-                obs = SaveAccesTokenFromRefreshToken(GetTokenInfo().refreshToken);
-                //TODO subscribe to observable and notify user if response code is not 200
+                obs = LoadAccesTokenFromRefreshToken(Serializer.LoadToken().refreshToken);
             }
             else
             {
                 obs = Observable.Return<UnityWebRequest>(null);
             }
-            return obs.SelectMany(_ => CallAPI(APIURL, GetTokenInfo().accesToken, httpAcceptHeader));
+            return obs.SelectMany(request => CallAPI(APIURL,Serializer.LoadToken().accesToken, httpAcceptHeader))
+            .Do(request =>
+            {
+                if (request != null && request.responseCode != 200)
+                {
+                    Debug.Log(request.error);
+                }
+            });
 
         }
 
@@ -171,9 +124,8 @@ namespace IO
             .Select(coord => new Vector2d(coord[0], coord[1]));
 
         }
-        public static IObservable<List<XDocument>> DownloadXMLForIMKLPackage(IMKLPackage package)
+        public static IObservable<List<string>> DownloadXMLForIMKLPackage(IMKLPackage package)
         {
-            Debug.Log("method called");
             //also return packages which are unavailable but are handled differently in gui
             if (package.DownloadIMKL)
             {
@@ -184,7 +136,7 @@ namespace IO
                                                 package.ID).ToList();
                             });
             }
-            return Observable.Return<List<XDocument>>(null);
+            return Observable.Return<List<string>>(null);
 
 
         }
@@ -200,7 +152,7 @@ namespace IO
 
 
         //use refresh_token to ask for new acces token
-        static IObservable<UnityWebRequest> SaveAccesTokenFromRefreshToken(string refreshToken)
+        static IObservable<UnityWebRequest> LoadAccesTokenFromRefreshToken(string refreshToken)
         {
             Debug.Log("acces token request");
             WWWForm form = new WWWForm();
@@ -226,10 +178,10 @@ namespace IO
             var expireDate = DateTime.Now.AddSeconds(jObj["expires_in"].ToObject<int>());
             var access_token = jObj["access_token"].ToObject<string>();
             var refresh_token = jObj["refresh_token"].ToObject<string>();
-            SetTokenInfo(new TokenInfo(access_token, expireDate, refresh_token));
+            Serializer.SaveToken(new TokenInfo(access_token, expireDate, refresh_token));
         }
         //return empty string when complete because the authorization process cannot be done stateless
-        static IObservable<UnityWebRequest> GetAccesTokenFromAuthCode(string code_authorization)
+        static IObservable<UnityWebRequest> LoadAccesTokenFromAuthCode(string code_authorization)
         {
             WWWForm form = new WWWForm();
             form.AddField("client_id", "1030");

@@ -1,10 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine;
 
 public class MenuPanel : MonoBehaviour {
-
-	public Vector2 IMKLPanelPosition = new Vector2(150, 50);
-    public InputField authCodeInputField;
+	public InputField AuthCodeInputField;
+	// Use this for initialization
+	
 }
