@@ -131,8 +131,7 @@ namespace IO
                 return CallAPIAndLogin(package.ZIPUrl, "application/zip").Select(webrequest =>
                             {
                                 //save KLBresponse
-                                return IMKLExtractor.ExtractIMKLXML(webrequest.downloadHandler.data,
-                                                package.ID).ToList();
+                                return IMKLExtractor.ExtractIMKLXML(webrequest.downloadHandler.data).ToList();
                             });
             }
             return Observable.Return<List<string>>(null);

@@ -3,7 +3,6 @@ todo
 
 put all gui in code->change menupanel to extra settings window/panel & add gps on/off & config for shown imkl info
 
-when unzipping only work with byte arrays no writing of files->refactor whole imkl extractor wihout file writing
 remove double subscribe in GUIfactory method LoadPacketInfo
 
 

@@ -2,6 +2,8 @@ using UnityEngine;
 using Ionic.Zip;
 using System.IO;
 using System;
+using System.Collections.Generic;
+using UniRx;
 
 namespace IO
 {
@@ -13,33 +15,31 @@ namespace IO
         /// <summary>
         ///
         /// </summary>
-        public static void UnZip(string zipPath, string exportPath)
+        public static IEnumerable<byte[]> ExtractFilesFromRecursiveZipData(byte[] zipData,string fileType=null)
         {
             //use byte stream
-            //using (MemoryStream stream = new MemoryStream(data))
-// using (ZipFile zout = ZipFile.Read(stream))
-            using (Ionic.Zip.ZipFile zip = new Ionic.Zip.ZipFile(zipPath))
+            using (MemoryStream zipstream = new MemoryStream(zipData))
+            using (ZipFile zout = ZipFile.Read(zipstream))
             {
-                Debug.Log(zip);
-                foreach (ZipEntry e in zip)
+                var list = new List<byte[]>();
+                foreach (ZipEntry e in zout)
                 {
                     Debug.Log(e.FileName);
                     //TODO try without writing file
                     var d = e.OpenReader();
                     var bytes = ReadToEnd(d);
-                    Debug.Log(bytes.Length);
-                    string newPath = Path.Combine(exportPath, e.FileName);
-
-                    if (e.IsDirectory)
-                    {
-                        Directory.CreateDirectory(newPath);
-                    }
-                    else
-                    {
-                        using (FileStream stream = new FileStream(newPath, FileMode.Create))
-                            e.Extract(stream);
+                    if (!e.IsDirectory){
+                        //if another zip unpack it
+                        if (Path.GetExtension(e.FileName)==".zip"){
+                            list.AddRange(ExtractFilesFromRecursiveZipData(bytes,fileType));
+                        }
+                        //if file and matching the filter
+                        else if (fileType==null || fileType == Path.GetExtension(e.FileName)){
+                            list.Add(bytes);
+                        }
                     }
                 }
+                return list;
             }
         }
         public static byte[] ReadToEnd(System.IO.Stream stream)

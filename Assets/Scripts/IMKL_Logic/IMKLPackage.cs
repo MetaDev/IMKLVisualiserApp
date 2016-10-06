@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using UniRx;
 using UnityEngine;
 using System.Linq;
+using System.Xml;
 
 namespace IMKL_Logic
 {
@@ -52,7 +53,17 @@ namespace IMKL_Logic
         }
         public IEnumerable<XDocument> GetKLBXML()
         {
-            return KLBResponses.Select(resp => XDocument.Parse(resp));
+            try
+            {
+                return KLBResponses.Select(resp => XDocument.Parse(resp));
+
+            }
+            catch (XmlException e)
+            {
+                GUIFactory.instance.MyModalWindow.Show("Something whent wrong when parsing xml from stored: " + e.Message, true);
+                Debug.Log("Something whent wrong when parsing xml from stored: " + e.Message);
+                return null;
+            }
         }
         public override string ToString()
         {

@@ -45,7 +45,7 @@ public class GUIFactory : MonoBehaviour
                             .Select(package => WebService.DownloadXMLForIMKLPackage(package)
                             .Select(xmls => Tuple.Create(package, xmls)))
                             .Merge().ToList()
-                            .DoOnError(error => {MyModalWindow.Show(error.Message, true); MyModalWindow.Close();})
+                            .DoOnError(error => MyModalWindow.Show(error.Message, true))
                             .DoOnCompleted(() => MyModalWindow.Close())
                             .Subscribe(packagesAndXmls =>
                             {
@@ -74,7 +74,7 @@ public class GUIFactory : MonoBehaviour
             items =>
             {
                 Observable.FromCoroutine(() => DrawPackages(items.Select(item => item.content).Cast<IMKLPackage>()))
-                .DoOnError(error => {MyModalWindow.Show(error.Message, true); MyModalWindow.Close();})
+                .DoOnError(error => MyModalWindow.Show(error.Message, true))
                 .DoOnCompleted(() => MyModalWindow.Close()).Subscribe();
             });
     }
