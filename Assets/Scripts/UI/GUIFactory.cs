@@ -69,7 +69,7 @@ public class GUIFactory : MonoBehaviour
         IMKLPackageDrawPanel.OnSelectedItemsAsObservable()
         .Do(_ => MyModalWindow.Show("Please wait while elements from the package are being drawn.", false))
         //HACK wait to first show dialog box and later execute drawing
-        .Delay(TimeSpan.FromSeconds(0.5))
+        //.Delay(TimeSpan.FromSeconds(0.5))
         .Subscribe(
             items =>
             {
