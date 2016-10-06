@@ -39,6 +39,7 @@ namespace IO
             return new Uri(new Uri(baseUri), relativeOrAbsoluteUri);
         }
         static string _clientId = "1030";
+        static string _clientSecret="+csxuC35huCwJokbdJBTWu9hrO0nX5G3";
         static string _redirectUri = "https://vianova.com";
        
 
@@ -71,6 +72,7 @@ namespace IO
             {
                 if (request != null && request.responseCode != 200)
                 {
+                    GUIFactory.instance.ShowMessage(request.error);
                     Debug.Log(request.error);
                 }
             });
@@ -154,10 +156,9 @@ namespace IO
         //use refresh_token to ask for new acces token
         static IObservable<UnityWebRequest> LoadAccesTokenFromRefreshToken(string refreshToken)
         {
-            Debug.Log("acces token request");
             WWWForm form = new WWWForm();
-            form.AddField("client_id", "1030");
-            form.AddField("client_secret", "+csxuC35huCwJokbdJBTWu9hrO0nX5G3");
+            form.AddField("client_id",_clientId);
+            form.AddField("client_secret", _clientSecret);
             form.AddField("grant_type", "refresh_token");
             form.AddField("refresh_token", refreshToken);
 
@@ -184,18 +185,23 @@ namespace IO
         static IObservable<UnityWebRequest> LoadAccesTokenFromAuthCode(string code_authorization)
         {
             WWWForm form = new WWWForm();
-            form.AddField("client_id", "1030");
-            form.AddField("redirect_uri", "https://vianova.com");
-            form.AddField("client_secret", "+csxuC35huCwJokbdJBTWu9hrO0nX5G3");
+            form.AddField("client_id", _clientId);
+            form.AddField("redirect_uri", _redirectUri);
+            form.AddField("client_secret",_clientSecret);
             form.AddField("grant_type", "authorization_code");
             form.AddField("code", code_authorization);
 
             string url = "https://oauth.beta.agiv.be/authorization/ws/oauth/v2/token";
-
             UnityWebRequest www = UnityWebRequest.Post(url, form);
             return UniRXExtensions.GetWWW(www).Select((webrequest) =>
             {
-                SaveAccesTokenFromBytes(webrequest.downloadHandler.data);
+                if (www.responseCode==200){
+                        SaveAccesTokenFromBytes(webrequest.downloadHandler.data);
+                }else{
+                    var message = @"Something went wrong when trying to log in with the authorization code.
+                     got error: "+ www.error + " "+ webrequest.downloadHandler.text + ", with code "+ www.responseCode;
+                    throw new Exception(message);
+                }
                 return webrequest;
             });
         }

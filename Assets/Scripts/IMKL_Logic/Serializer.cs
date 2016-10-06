@@ -14,20 +14,20 @@ namespace IO
     {
 
         static string serialisationPath = Application.persistentDataPath;
-        static TokenInfo _tokenInfo;
+        static TokenInfo _TokenInfo;
 
         public static void SaveToken(TokenInfo tokenInfo)
         {
             SerialiseObject(tokenInfo, TokenInfoFileName);
-            _tokenInfo = tokenInfo;
+            _TokenInfo = tokenInfo;
         }
         public static TokenInfo LoadToken()
         {
-            if (_tokenInfo == null)
+            if (_TokenInfo == null)
             {
-                _tokenInfo = DeserialiseObject<TokenInfo>(TokenInfoFileName);
+                _TokenInfo = DeserialiseObject<TokenInfo>(TokenInfoFileName);
             }
-            return _tokenInfo;
+            return _TokenInfo;
         }
         static string PackagesFileName =  "IMKLPackages.dat";
         static string TokenInfoFileName =  "TokenInfo.dat";
@@ -39,7 +39,6 @@ namespace IO
         public static void SaveIMKLPackages(IEnumerable<IMKLPackage> packages)
         {
             AddPackages(packages);
-            Debug.Log(_IMKLPackages.Count());
             SerialiseObject(_IMKLPackages, PackagesFileName);
         }
         public static IEnumerable<IMKLPackage> LoadAllIMKLPackages()

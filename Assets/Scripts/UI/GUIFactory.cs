@@ -15,13 +15,21 @@ using Utility;
 public class GUIFactory : MonoBehaviour
 {
     public MenuPanel menuPanel;
+    public CustomToggle MenuToggle;
     public MultiSelectPanel IMKLPackageInfoPanel;
     public MultiSelectPanel IMKLPackageDrawPanel;
+
+    public ModalWindow MyModalWindow;
+
+    public GameObject HideAblePanel;
+
 
 
     public void LoadPacketInfo()
     {
-        WebService.GetAllIMKLPackage().Select(packages =>
+        WebService.GetAllIMKLPackage()
+            .DoOnError(error => GUIFactory.instance.ShowMessage(error.Message))
+            .Select(packages =>
           {
               IMKLPackageInfoPanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package, package.DownloadIMKL)));
               //every time ok is clicked the selected items are streamed
@@ -34,7 +42,6 @@ public class GUIFactory : MonoBehaviour
                             .Select(xmls => Tuple.Create(package, xmls)))
                             .Merge().ToList().Subscribe(packagesAndXmls =>
                             {
-                                Debug.Log(packagesAndXmls.Count());
                                 //save xml docs in package instance
                                 packagesAndXmls.ForEach(pAndXs => pAndXs.Item1.KLBResponses = pAndXs.Item2);
                                 //serialise package instances
@@ -42,18 +49,45 @@ public class GUIFactory : MonoBehaviour
                             });
           }));
     }
+    public static GUIFactory instance;
 
-    void Start()
+    public void ShowMessage(string message)
+    {
+        MyModalWindow.gameObject.SetActive(true);
+        MyModalWindow.Message.text = message;
+    }
+    void InitDrawPanel()
     {
         //init draw panel with saved packages
         AddDrawPackages(Serializer.LoadAllIMKLPackages());
-                //refresh the draw panel on the content of the imkl packages
+        //refresh the draw panel on the content of the imkl packages
         Serializer.PackagesChanged().Subscribe(packages => AddDrawPackages(packages));
         //TODO delete previous drawing on map
         IMKLPackageDrawPanel.OnSelectedItemsAsObservable().Subscribe(
             items => items.Select(item => item.content).Cast<IMKLPackage>()
             .ForEach(package => DrawPackages(package)));
     }
+    void Start()
+    {
+        //Singleton
+        instance = this;
+        //Draw Panel
+        InitDrawPanel();
+        //Info Panel
+        //TODO load packet info is assigned here
+        //Login
+        //toggle
+        MenuToggle.MyToggle.OnValueChangedAsObservable().Subscribe(isOn =>
+        {
+                HideAblePanel.SetActive(isOn);
+        });
+
+    }
+    void FlipMenu(bool open)
+    {
+
+    }
+
     void AddDrawPackages(IEnumerable<IMKLPackage> packages)
     {
         IMKLPackageDrawPanel.AddItems(packages.Where(package => package.KLBResponses != null)
@@ -82,7 +116,8 @@ public class GUIFactory : MonoBehaviour
     public void LoginPress()
     {
         var authCode = menuPanel.AuthCodeInputField.text;
-        WebService.LoginWithAuthCode(authCode).Subscribe(webRequest => Debug.Log("login response code: " + webRequest.responseCode));
+        WebService.LoginWithAuthCode(authCode).DoOnError(error => GUIFactory.instance.ShowMessage(error.Message))
+            .Subscribe(webRequest => GUIFactory.instance.ShowMessage("Login succeeded"));
     }
 
 

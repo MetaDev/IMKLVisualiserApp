@@ -3,7 +3,8 @@ using System.Collections;
 using UniRx;
 using System;
 using UnityEngine.Networking;
-
+using UI;
+using Utility;
 namespace UniRx
 {
 
@@ -31,7 +32,8 @@ namespace UniRx
                 }
                 catch (Exception ex)
                 {
-                    observer.OnError(ex);
+                    var message = Localization.WebErrorMessage + "error: " + ex.Message;
+                    observer.OnError(ExceptionExtension.Rethrow(ex,message));
                     yield break;
                 }
                 yield return null;
@@ -42,7 +44,8 @@ namespace UniRx
 
             if (www.error != null)
             {
-                observer.OnError(new Exception(www.error + " " + www.responseCode));
+                var message = Localization.WebErrorMessage + "error: " + www.error + " " + www.responseCode;
+                observer.OnError(new Exception(message));
             }
             else
             {

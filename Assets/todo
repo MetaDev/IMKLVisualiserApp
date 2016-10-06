@@ -1,35 +1,30 @@
 todo
 
-
-rewrite serialisation without serialisation engine of unity, use json and json files
-
 UI
-
-when unzipping only work with byte arrays no writing of files->refactor whole imkl extractor wihout file writing
-remove double subscribe in GUIfactory method LoadPacketInfo
-make whole packaging stuff async
-
-test on android/ios/win
 
 download progress UI
 add wrapper class for unitywebrequest which visualizes response codes with UI
 ui for loading message (use progressnotifier in unirx) (modal window) (for each call)
 catch weberrors verbally
 
+when unzipping only work with byte arrays no writing of files->refactor whole imkl extractor wihout file writing
+remove double subscribe in GUIfactory method LoadPacketInfo
+make whole packaging stuff async
 
+test on android/ios/win
+draw still bugy in android
+
+put all gui in code->change menupanel to extra settings window
 
 output message when error with xml reading occurs (make message popup prefab)
 
+map center and zoom based on package request area and not points
 
 add if in editor tags for debug logs and send other logs with mail if not in editor
 
 draw markers similar to lines such that they can be drawn over the lines
 
-read page on LINQ in vianova bookmark
-
-clean up draw and ui elements if no longer used
-
-
+destroy draw and ui elements if no longer used
 
 increase resolution 
 You can increase the text size stylize map using snazzymaps or mapbox.

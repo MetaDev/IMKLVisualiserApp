@@ -54,7 +54,6 @@ namespace IO
         {
             try
             {
-                Debug.Log(KLBResponses.Count());
                 //ToList is necessary because the lists are lazely evaluated 
                 return KLBResponses.Where(xdoc=>xdoc!=null).SelectMany(xdoc =>
                 {
