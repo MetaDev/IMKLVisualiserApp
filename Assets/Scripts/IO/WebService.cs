@@ -72,7 +72,7 @@ namespace IO
             {
                 if (request != null && request.responseCode != 200)
                 {
-                    throw new Exception("api call failed, error" + request.error + ", response code "+ request.responseCode);
+                    throw new Exception("api call failed, error" + request.error + " "+request.downloadHandler.text+ ", response code "+ request.responseCode);
                 }
             });
 
