@@ -16,17 +16,20 @@ namespace IMKL_Logic
         {
            
             //draw all geometry at the center of the scene, defined by all points
-            //.Select(p=>p) necessary to avoid InvalidOperationException for some xml files
+            //TODO throws error on empty list, center using package info
+            Debug.Log( pointsAndlines.OfType<Point>().Count());
             var pointsPos = pointsAndlines.OfType<Point>().Select(point => point.GetLatLon());
             Vector2d min = new Vector2d(pointsPos.Min(v => v.x), pointsPos.Min(v => v.y));
             //set camera of scene to center of geometry
             Vector2d max = new Vector2d(pointsPos.Max(v => v.x), pointsPos.Max(v => v.y));
 
             var absCenter = (max + min) / 2;
-
-            OnlineMapsLocationService.instance.emulatorPosition = absCenter;
+            //turn off gps and relocate map vies
+            OnlineMapsLocationService.instance.updatePosition=false;
+            OnlineMaps.instance.position = absCenter;
             OnlineMaps.instance.zoom = 17;
             OnlineMaps.instance.Redraw();
+
 
         }
 

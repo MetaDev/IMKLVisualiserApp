@@ -72,8 +72,7 @@ namespace IO
             {
                 if (request != null && request.responseCode != 200)
                 {
-                    GUIFactory.instance.ShowMessage(request.error);
-                    Debug.Log(request.error);
+                    throw new Exception("api call failed, error" + request.error + ", response code "+ request.responseCode);
                 }
             });
 
@@ -83,12 +82,10 @@ namespace IO
         //method returns json body API call
         static IObservable<UnityWebRequest> CallAPI(string APIURL, string acces_code, string httpAcceptHeader)
         {
-            var progressNotifier = new ScheduledNotifier<float>();
-            progressNotifier.Subscribe(x => Debug.Log(x));
             UnityWebRequest www = UnityWebRequest.Get(APIURL);
             www.SetRequestHeader("Authorization", "Bearer " + acces_code);
             www.SetRequestHeader("Accept", httpAcceptHeader);
-            return UniRXExtensions.GetWWW(www, progressNotifier).Select((webRequest) =>
+            return UniRXExtensions.GetWWW(www).Select((webRequest) =>
              {
                  return webRequest;
              });

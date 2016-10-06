@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -27,8 +28,10 @@ public class GUIFactory : MonoBehaviour
 
     public void LoadPacketInfo()
     {
+        MyModalWindow.Show("Please wait while downloading all available packages information", false);
         WebService.GetAllIMKLPackage()
-            .DoOnError(error => GUIFactory.instance.ShowMessage(error.Message))
+        .DoOnCompleted(() => MyModalWindow.Close())
+            .DoOnError(error => MyModalWindow.Show(error.Message, true))
             .Select(packages =>
           {
               IMKLPackageInfoPanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package, package.DownloadIMKL)));
@@ -36,11 +39,14 @@ public class GUIFactory : MonoBehaviour
               return IMKLPackageInfoPanel.OnSelectedItemsAsObservable();
           }).Subscribe(itemsObs => itemsObs.Subscribe(items =>
           {
+              MyModalWindow.Show("Please wait while downloading selected package data", false);
               //   List<IObservable<Tuple<IMKLPackage,List<XDocument>>>> packagesObs = new List<IObservable<Tuple<IMKLPackage,List<XDocument>>>>();
               items.Select(item => item.content).Cast<IMKLPackage>()
                             .Select(package => WebService.DownloadXMLForIMKLPackage(package)
                             .Select(xmls => Tuple.Create(package, xmls)))
-                            .Merge().ToList().Subscribe(packagesAndXmls =>
+                            .Merge().ToList()
+                            .DoOnCompleted(() => MyModalWindow.Close())
+                            .Subscribe(packagesAndXmls =>
                             {
                                 //save xml docs in package instance
                                 packagesAndXmls.ForEach(pAndXs => pAndXs.Item1.KLBResponses = pAndXs.Item2);
@@ -51,11 +57,7 @@ public class GUIFactory : MonoBehaviour
     }
     public static GUIFactory instance;
 
-    public void ShowMessage(string message)
-    {
-        MyModalWindow.gameObject.SetActive(true);
-        MyModalWindow.Message.text = message;
-    }
+
     void InitDrawPanel()
     {
         //init draw panel with saved packages
@@ -63,9 +65,16 @@ public class GUIFactory : MonoBehaviour
         //refresh the draw panel on the content of the imkl packages
         Serializer.PackagesChanged().Subscribe(packages => AddDrawPackages(packages));
         //TODO delete previous drawing on map
-        IMKLPackageDrawPanel.OnSelectedItemsAsObservable().Subscribe(
-            items => items.Select(item => item.content).Cast<IMKLPackage>()
-            .ForEach(package => DrawPackages(package)));
+        IMKLPackageDrawPanel.OnSelectedItemsAsObservable()
+        .Do(_ => MyModalWindow.Show("Please wait while elements from the package are being drawn.", false))
+        //HACK wait to first show dialog box and later execute drawing
+        .Delay(TimeSpan.FromSeconds(0.5))
+        .Subscribe(
+            items =>
+            {
+                Observable.FromCoroutine(() => DrawPackages(items.Select(item => item.content).Cast<IMKLPackage>()))
+                .DoOnCompleted(() => MyModalWindow.Close()).Subscribe();
+            });
     }
     void Start()
     {
@@ -79,15 +88,10 @@ public class GUIFactory : MonoBehaviour
         //toggle
         MenuToggle.MyToggle.OnValueChangedAsObservable().Subscribe(isOn =>
         {
-                HideAblePanel.SetActive(isOn);
+            HideAblePanel.SetActive(isOn);
         });
 
     }
-    void FlipMenu(bool open)
-    {
-
-    }
-
     void AddDrawPackages(IEnumerable<IMKLPackage> packages)
     {
         IMKLPackageDrawPanel.AddItems(packages.Where(package => package.KLBResponses != null)
@@ -96,14 +100,21 @@ public class GUIFactory : MonoBehaviour
 
     //TODO Add loading screen 
 
-    void DrawPackages(IMKLPackage package)
+    IEnumerator DrawPackages(IEnumerable<IMKLPackage> packages)
     {
-        if (package != null)
+        if (packages != null)
         {
-            var drawElements = IMKLParser.ParseDrawElements(package.GetKLBXML())
+            foreach (IMKLPackage package in packages)
+            {
+                var drawElements = IMKLParser.ParseDrawElements(package.GetKLBXML())
                              .Where(elts => elts != null);
-            drawElements.ForEach(elt => elt.Init());
-            MapHelper.ZoomAndCenterOnElements(drawElements);
+                MapHelper.ZoomAndCenterOnElements(drawElements);
+                foreach (DrawElement elt in drawElements)
+                {
+                    elt.Init();
+                    yield return null;
+                }
+            }
         }
         else
         {
@@ -116,8 +127,8 @@ public class GUIFactory : MonoBehaviour
     public void LoginPress()
     {
         var authCode = menuPanel.AuthCodeInputField.text;
-        WebService.LoginWithAuthCode(authCode).DoOnError(error => GUIFactory.instance.ShowMessage(error.Message))
-            .Subscribe(webRequest => GUIFactory.instance.ShowMessage("Login succeeded"));
+        WebService.LoginWithAuthCode(authCode).DoOnError(error => GUIFactory.instance.MyModalWindow.Show(error.Message, true))
+            .Subscribe(webRequest => GUIFactory.instance.MyModalWindow.Show("Login succeeded", true));
     }
 
 

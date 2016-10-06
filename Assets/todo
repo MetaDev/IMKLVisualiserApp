@@ -1,22 +1,16 @@
 todo
 
-UI
+test on android/ios/win
+draw still bugy in android, test without gps
 
-download progress UI
-add wrapper class for unitywebrequest which visualizes response codes with UI
-ui for loading message (use progressnotifier in unirx) (modal window) (for each call)
-catch weberrors verbally
+line jittering
+
+put all gui in code->change menupanel to extra settings window/panel & add gps on/off & config for shown imkl info
 
 when unzipping only work with byte arrays no writing of files->refactor whole imkl extractor wihout file writing
 remove double subscribe in GUIfactory method LoadPacketInfo
 make whole packaging stuff async
 
-test on android/ios/win
-draw still bugy in android
-
-put all gui in code->change menupanel to extra settings window
-
-output message when error with xml reading occurs (make message popup prefab)
 
 map center and zoom based on package request area and not points
 

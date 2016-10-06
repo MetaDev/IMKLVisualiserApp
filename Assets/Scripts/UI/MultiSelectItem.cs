@@ -24,6 +24,7 @@ public class MultiSelectItem : MonoBehaviour
         this.label = label;
         this.content = content;
         this.Interactable=interactable;
+        this.Group=group;
     }
     public bool IsSelected()
     {
