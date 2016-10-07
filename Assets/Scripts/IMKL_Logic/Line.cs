@@ -38,7 +38,7 @@ namespace IMKL_Logic
             {"projected",LineStyle.DASH},
             {"disused",LineStyle.DASHDOT}
         };
-        static IDictionary<LineStyle, Texture2D> styleTextureMap= new Dictionary<LineStyle, Texture2D>(){
+        static IDictionary<LineStyle, Texture2D> styleTextureMap = new Dictionary<LineStyle, Texture2D>(){
             {LineStyle.DASHDOT,Resources.Load("linestyles/dot_dash") as Texture2D},
             {LineStyle.DASH,Resources.Load("linestyles/square_dash") as Texture2D},
             {LineStyle.FULL,Resources.Load("linestyles/full") as Texture2D}};
@@ -78,16 +78,6 @@ namespace IMKL_Logic
 
             mesh = meshFilter.sharedMesh = new Mesh();
             mesh.name = "Line";
-
-            //load textures
-            if (styleTextureMap == null)
-            {
-                styleTextureMap = new Dictionary<LineStyle, Texture2D>(){
-            {LineStyle.DASHDOT,Resources.Load("linestyles/dot_dash") as Texture2D},
-            {LineStyle.DASH,Resources.Load("linestyles/square_dash") as Texture2D},
-            {LineStyle.FULL,Resources.Load("linestyles/full") as Texture2D}};
-            }
-
             mat = new Material(Shader.Find("Mobile/Particles/Multiply"));
 
             meshRenderer.material = mat;
@@ -105,6 +95,8 @@ namespace IMKL_Logic
                     width = width * 2;
                     break;
                 case LineStyle.DASHDOT:
+                    //tileing 0.1 0.1
+                    uvScale = new Vector2(0.1f, 0.1f);
                     break;
                 case LineStyle.FULL:
                     uvScale = new Vector2(1f, 1f);

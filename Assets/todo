@@ -2,9 +2,12 @@ todo
 
 
 put all gui in code->change menupanel to extra settings window/panel & add gps on/off & config for shown imkl info
+put toggle for beta and production
 
-
+make drawelemets proper gameobjects to be able to acces public fields in editor
 click on line and marker shows properties
+
+
 
 map center and zoom based on package request area and not points
 
