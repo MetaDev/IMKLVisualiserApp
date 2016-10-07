@@ -17,7 +17,7 @@ namespace IMKL_Logic
             get;
             private set;
         }
-        float width = 3F;
+        public float width = 3F;
         public enum Properties
         {
             THEMA, STATUS
@@ -38,7 +38,10 @@ namespace IMKL_Logic
             {"projected",LineStyle.DASH},
             {"disused",LineStyle.DASHDOT}
         };
-        static IDictionary<LineStyle, Texture2D> styleTextureMap;
+        static IDictionary<LineStyle, Texture2D> styleTextureMap= new Dictionary<LineStyle, Texture2D>(){
+            {LineStyle.DASHDOT,Resources.Load("linestyles/dot_dash") as Texture2D},
+            {LineStyle.DASH,Resources.Load("linestyles/square_dash") as Texture2D},
+            {LineStyle.FULL,Resources.Load("linestyles/full") as Texture2D}};
         static Material mat;
         public enum LineStyle
         {
@@ -62,53 +65,65 @@ namespace IMKL_Logic
                 Debug.Log("The initiated Line is missing or has unidentified properties." + e.Message);
                 Debug.Log(string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()));
             }
-          
+
         }
         GameObject linestring;
-        LineRenderer lineRenderer;
         IEnumerable<Vector2> relativePos;
         //init and draw are both methods accesing unity API and as such should always be called from main thread
         public override void Init()
         {
+            GameObject container = new GameObject("Line");
+            meshFilter = container.AddComponent<MeshFilter>();
+            meshRenderer = container.AddComponent<MeshRenderer>();
+
+            mesh = meshFilter.sharedMesh = new Mesh();
+            mesh.name = "Line";
+
             //load textures
             if (styleTextureMap == null)
             {
                 styleTextureMap = new Dictionary<LineStyle, Texture2D>(){
             {LineStyle.DASHDOT,Resources.Load("linestyles/dot_dash") as Texture2D},
-            {LineStyle.DASH,Resources.Load("linestyles/square_dash") as Texture2D}};
+            {LineStyle.DASH,Resources.Load("linestyles/square_dash") as Texture2D},
+            {LineStyle.FULL,Resources.Load("linestyles/full") as Texture2D}};
             }
-            if (mat == null)
-            {
-                mat = new Material(Shader.Find("Mobile/Particles/Multiply"));
-            }
+
+            mat = new Material(Shader.Find("Mobile/Particles/Multiply"));
+
+            meshRenderer.material = mat;
+
             //first point is position
             linestring = new GameObject();
             linestring.name = "line";
-            lineRenderer = linestring.AddComponent<LineRenderer>();
-            lineRenderer.material = mat;
-            lineRenderer.startColor = color;
-            lineRenderer.endColor = color;
-            lineRenderer.startWidth = width;
-            lineRenderer.endWidth = width;
-            lineRenderer.numPositions = (latLonPos.Count());
-            if (style != LineStyle.FULL)
-            {
-                lineRenderer.textureMode = LineTextureMode.Tile;
-                lineRenderer.material.mainTexture = styleTextureMap[style];
-                lineRenderer.material.SetColor("_TintColor", color);
-                if (style == LineStyle.DASH)
-                {
-                    //tiling 0.2 0.4, width 2*
-                    lineRenderer.material.mainTextureScale = new Vector2(0.2f, 0.4f);
-                    lineRenderer.startWidth = width * 2;
-                    lineRenderer.endWidth = width * 2;
 
-                }
-                else if (style == LineStyle.DASHDOT)
-                {
-                    //tileing 0.1 0.1
-                    lineRenderer.material.mainTextureScale = new Vector2(0.1f, 0.1f);
-                }
+            switch (style)
+            {
+                case LineStyle.DASH:
+                    //tiling 0.2 0.4, width 2*
+                    uvScale = new Vector2(0.2f, 0.4f);
+                    width = width * 2;
+                    width = width * 2;
+                    break;
+                case LineStyle.DASHDOT:
+                    break;
+                case LineStyle.FULL:
+                    uvScale = new Vector2(1f, 1f);
+                    break;
+
+
+            }
+            lineRenderer.textureMode = LineTextureMode.Tile;
+            mat.mainTexture = styleTextureMap[style];
+            lineRenderer.material.SetColor("_TintColor", color);
+            if (style == LineStyle.DASH)
+            {
+
+
+            }
+            else if (style == LineStyle.DASHDOT)
+            {
+                //tileing 0.1 0.1
+                uvScale = new Vector2(0.1f, 0.1f);
             }
 
             OnlineMaps.instance.OnChangePosition += UpdateAbsPosition;
@@ -131,7 +146,7 @@ namespace IMKL_Logic
                 var worldOriginPos = OnlineMapsTileSetControl.instance.GetWorldPosition(originPos.x, originPos.y);
                 var delta = worldOriginPos - prevWorldOriginPos;
                 var newWorldPosInMap = WorldPosCache[OnlineMaps.instance.zoom].Select(pos => pos + delta).ToArray();
-                lineRenderer.SetPositions(newWorldPosInMap);
+                UpdateLine(newWorldPosInMap);
             }
 
         }
@@ -164,13 +179,90 @@ namespace IMKL_Logic
                     //save origins for relative draw
                     prevWorldOriginPos = worldPos[0];
                     //update line
-                    lineRenderer.SetPositions(worldPos);
+                    UpdateLine(worldPos);
                 }
             }
+        }
+
+        MeshFilter meshFilter;
+        MeshRenderer meshRenderer;
+        Mesh mesh;
+        Vector2 uvScale;
+        void UpdateLine(Vector3[] worldPos)
+        {
+
+            float totalDistance = 0;
+            Vector3 lastPosition = Vector3.zero;
+
+            List<Vector3> vertices = new List<Vector3>();
+            List<Vector2> uvs = new List<Vector2>();
+            List<Vector3> normals = new List<Vector3>();
+            List<int> triangles = new List<int>();
+
+            List<Vector3> positions = new List<Vector3>();
+            //skip first position for angle calculation
+            foreach (Vector3 position in worldPos.Skip(1))
+            {
+                // Calculate angle between coordinates.
+                float a = OnlineMapsUtils.Angle2DRad(lastPosition, position, 90);
+
+                // Calculate offset
+                Vector3 off = new Vector3(Mathf.Cos(a) * width, 0, Mathf.Sin(a) * width);
+
+                // Init verticles, normals and triangles.
+                int vCount = vertices.Count;
+
+                vertices.Add(lastPosition + off);
+                vertices.Add(lastPosition - off);
+                vertices.Add(position + off);
+                vertices.Add(position - off);
+
+                normals.Add(Vector3.up);
+                normals.Add(Vector3.up);
+                normals.Add(Vector3.up);
+                normals.Add(Vector3.up);
+
+                triangles.Add(vCount);
+                triangles.Add(vCount + 3);
+                triangles.Add(vCount + 1);
+                triangles.Add(vCount);
+                triangles.Add(vCount + 2);
+                triangles.Add(vCount + 3);
+
+                totalDistance += (lastPosition - position).magnitude;
 
 
+                lastPosition = position;
+            }
+
+            float tDistance = 0;
+
+            for (int i = 1; i < positions.Count; i++)
+            {
+                float distance = (positions[i - 1] - positions[i]).magnitude;
+
+                // Updates UV
+                uvs.Add(new Vector2(tDistance / totalDistance, 0));
+                uvs.Add(new Vector2(tDistance / totalDistance, 1));
+
+                tDistance += distance;
+
+                uvs.Add(new Vector2(tDistance / totalDistance, 0));
+                uvs.Add(new Vector2(tDistance / totalDistance, 1));
+            }
+
+            // Update mesh
+            mesh.vertices = vertices.ToArray();
+            mesh.normals = normals.ToArray();
+            mesh.uv = uvs.ToArray();
+            mesh.triangles = triangles.ToArray();
+
+            // Scale texture
+            Vector2 scale = new Vector2(totalDistance / width, 1);
+            scale.Scale(uvScale);
+            meshRenderer.material.mainTextureScale = scale;
         }
 
     }
-
 }
+
