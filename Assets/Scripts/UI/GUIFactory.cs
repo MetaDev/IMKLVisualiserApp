@@ -15,7 +15,6 @@ using Utility;
 
 public class GUIFactory : MonoBehaviour
 {
-    public MenuPanel menuPanel;
     public CustomToggle MenuToggle;
     public MultiSelectPanel IMKLPackageInfoPanel;
     public MultiSelectPanel IMKLPackageDrawPanel;
@@ -26,6 +25,9 @@ public class GUIFactory : MonoBehaviour
     public Button HiddenMenuBtn;
     public GameObject HiddenMenu;
     public Toggle GPSToggle;
+
+    public Button OKLoginButton;
+    public InputField AuthCodeInputField;
 
 
     public void LoadPacketInfo()
@@ -132,7 +134,7 @@ public class GUIFactory : MonoBehaviour
 
     public void LoginPress()
     {
-        var authCode = menuPanel.AuthCodeInputField.text;
+        var authCode = AuthCodeInputField.text;
         WebService.LoginWithAuthCode(authCode).DoOnError(error => GUIFactory.instance.MyModalWindow.Show(error.Message, true))
             .Subscribe(webRequest => GUIFactory.instance.MyModalWindow.Show("Login succeeded", true));
     }
