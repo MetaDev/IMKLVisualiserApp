@@ -3,25 +3,28 @@ todo
 
 put all gui in code->change menupanel to extra settings window/panel & add gps on/off & config for shown imkl info
 
-remove double subscribe in GUIfactory method LoadPacketInfo
 
+click on line and marker shows properties
 
 map center and zoom based on package request area and not points
 
+test IOS 
+
 scale lines on zoom
+draw markers similar to lines such that they can be drawn over the lines
 
 test on android/ios/win
 
 
 add if in editor tags for debug logs and send other logs with mail if not in editor
 
-draw markers similar to lines such that they can be drawn over the lines
-
 destroy draw and ui elements if no longer used
 
 increase resolution 
 You can increase the text size stylize map using snazzymaps or mapbox.
 Read sections «Styled Google Maps» and «Using Mapbox» in the documentation.
+
+documentation!!
 
 
 	

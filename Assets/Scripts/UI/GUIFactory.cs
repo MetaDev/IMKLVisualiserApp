@@ -22,8 +22,10 @@ public class GUIFactory : MonoBehaviour
 
     public ModalWindow MyModalWindow;
 
-    public GameObject HideAblePanel;
-
+    public GameObject FixedMenuSlidePart;
+    public Button HiddenMenuBtn;
+    public GameObject HiddenMenu;
+    public Toggle GPSToggle;
 
 
     public void LoadPacketInfo()
@@ -32,12 +34,12 @@ public class GUIFactory : MonoBehaviour
         WebService.GetAllIMKLPackage()
         .DoOnCompleted(() => MyModalWindow.Close())
             .DoOnError(error => MyModalWindow.Show(error.Message, true))
-            .Select(packages =>
+            .SelectMany(packages =>
           {
               IMKLPackageInfoPanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package, package.DownloadIMKL)));
               //every time ok is clicked the selected items are streamed
               return IMKLPackageInfoPanel.OnSelectedItemsAsObservable();
-          }).Subscribe(itemsObs => itemsObs.Subscribe(items =>
+          }).Subscribe(items =>
           {
               MyModalWindow.Show("Please wait while downloading selected package data", false);
               //   List<IObservable<Tuple<IMKLPackage,List<XDocument>>>> packagesObs = new List<IObservable<Tuple<IMKLPackage,List<XDocument>>>>();
@@ -54,7 +56,7 @@ public class GUIFactory : MonoBehaviour
                                 //serialise package instances
                                 Serializer.SaveIMKLPackages(packagesAndXmls.Select(pAndX => pAndX.Item1));
                             });
-          }));
+          });
     }
     public static GUIFactory instance;
 
@@ -78,6 +80,7 @@ public class GUIFactory : MonoBehaviour
                 .DoOnCompleted(() => MyModalWindow.Close()).Subscribe();
             });
     }
+
     void Start()
     {
         //Singleton
@@ -88,10 +91,11 @@ public class GUIFactory : MonoBehaviour
         //TODO load packet info is assigned here
         //Login
         //toggle
-        MenuToggle.MyToggle.OnValueChangedAsObservable().Subscribe(isOn =>
-        {
-            HideAblePanel.SetActive(isOn);
-        });
+        MenuToggle.MyToggle.OnValueChangedAsObservable().Subscribe(isOn => FixedMenuSlidePart.SetActive(isOn));
+        //HiddenMenuBtn
+        HiddenMenuBtn.OnClickAsObservable().Subscribe(_ => HiddenMenu.SetActive(true));
+        //GPS toggle
+        GPSToggle.OnValueChangedAsObservable().Subscribe(isOn => OnlineMapsLocationService.instance.updatePosition = isOn);
 
     }
     void AddDrawPackages(IEnumerable<IMKLPackage> packages)

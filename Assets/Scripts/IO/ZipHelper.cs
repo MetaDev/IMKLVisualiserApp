@@ -24,8 +24,6 @@ namespace IO
                 var list = new List<byte[]>();
                 foreach (ZipEntry e in zout)
                 {
-                    Debug.Log(e.FileName);
-                    //TODO try without writing file
                     var d = e.OpenReader();
                     var bytes = ReadToEnd(d);
                     if (!e.IsDirectory){
