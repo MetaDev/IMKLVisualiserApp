@@ -10,37 +10,38 @@ namespace IMKL_Logic
 
     public class Point : DrawElement
     {
-        public enum Properties
-        {
-            THEMA, POINTTYPE, STATUS
-        }
+
         float scale = 30;
         public Vector2d latlon
         {
             get;
             private set;
         }
-
-        Dictionary<Properties, string> properties;
+        public enum VisualisedProperties
+        {
+            THEMA, POINTTYPE, STATUS
+        }
+        public static Dictionary<VisualisedProperties, string> VisualisedPropertyMap = new Dictionary<VisualisedProperties, string>(){
+            {VisualisedProperties.THEMA,VisualisedProperties.THEMA.ToString().ToLowerInvariant()},
+            {VisualisedProperties.POINTTYPE,VisualisedProperties.POINTTYPE.ToString().ToLowerInvariant()},
+            {VisualisedProperties.STATUS,VisualisedProperties.STATUS.ToString().ToLowerInvariant()}
+        };
+        string PointType;
+        string Thema;
+        string Status;
         // Use this for initialization
-        public Point(Vector2d pos, Dictionary<Properties, string> properties)
+        public Point(Vector2d pos,string pointType,string thema,string status, Dictionary<string, string> properties) : base(properties)
         {
             //check properties
-            if (!(properties.ContainsKey(Properties.THEMA) &&
-            properties.ContainsKey(Properties.POINTTYPE) &&
-            properties.ContainsKey(Properties.STATUS)))
-            {
-                Debug.Log("Point is missing poperties.");
-                Debug.Log(string.Join(" ", properties.Select(kvp => kvp.ToString() + ":" + kvp.Value).ToArray()));
-            }
-
-            this.properties = properties;
+            PointType=pointType;
+            Thema=thema;
+            Status=status;
             this.latlon = GEO.LambertToLatLong(pos);
 
         }
         public override string ToString()
         {
-            return "properties: " + string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
+            return "properties: " + string.Join(" ", Properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
                 + "Position: " + latlon.ToString();
         }
         public Vector2d GetLatLon()
@@ -92,8 +93,8 @@ namespace IMKL_Logic
             GameObject prefab = null;
             try
             {
-                prefab = GetIconPrefab(properties[Properties.THEMA],
-          properties[Properties.POINTTYPE], properties[Properties.STATUS]);
+                prefab = GetIconPrefab(Thema,PointType,Status);
+                      
             }
             catch (KeyNotFoundException e)
             {

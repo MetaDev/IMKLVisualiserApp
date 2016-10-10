@@ -19,18 +19,21 @@ public class GUIFactory : MonoBehaviour
     public MultiSelectPanel IMKLPackageInfoPanel;
     public MultiSelectPanel IMKLPackageDrawPanel;
 
+    public Button RefreshOnlinePackages;
+
     public ModalWindow MyModalWindow;
 
     public GameObject FixedMenuSlidePart;
     public Button HiddenMenuBtn;
     public GameObject HiddenMenu;
     public Toggle GPSToggle;
+    public Button ClearLocalPackages;
 
     public Button OKLoginButton;
     public InputField AuthCodeInputField;
 
 
-    public void LoadPacketInfo()
+    void LoadPacketInfo()
     {
         MyModalWindow.Show("Please wait while downloading all available packages information", false);
         WebService.GetAllIMKLPackage()
@@ -72,8 +75,6 @@ public class GUIFactory : MonoBehaviour
         //TODO delete previous drawing on map
         IMKLPackageDrawPanel.OnSelectedItemsAsObservable()
         .Do(_ => MyModalWindow.Show("Please wait while elements from the package are being drawn.", false))
-        //HACK wait to first show dialog box and later execute drawing
-        //.Delay(TimeSpan.FromSeconds(0.5))
         .Subscribe(
             items =>
             {
@@ -91,14 +92,19 @@ public class GUIFactory : MonoBehaviour
         InitDrawPanel();
         //Info Panel
         //TODO load packet info is assigned here
-        //Login
+        RefreshOnlinePackages.OnClickAsObservable().Subscribe(_ => LoadPacketInfo());
         //toggle
         MenuToggle.MyToggle.OnValueChangedAsObservable().Subscribe(isOn => FixedMenuSlidePart.SetActive(isOn));
         //HiddenMenuBtn
         HiddenMenuBtn.OnClickAsObservable().Subscribe(_ => HiddenMenu.SetActive(true));
         //GPS toggle
         GPSToggle.OnValueChangedAsObservable().Subscribe(isOn => OnlineMapsLocationService.instance.updatePosition = isOn);
-
+        //clear packages
+        ClearLocalPackages.OnClickAsObservable().Subscribe(_ => Serializer.DeleteStoredPackages());
+        //Login
+        OKLoginButton.OnClickAsObservable().Subscribe(_ => Login());
+        //line stuff
+        
     }
     void AddDrawPackages(IEnumerable<IMKLPackage> packages)
     {
@@ -132,7 +138,7 @@ public class GUIFactory : MonoBehaviour
     }
 
 
-    public void LoginPress()
+    void Login()
     {
         var authCode = AuthCodeInputField.text;
         WebService.LoginWithAuthCode(authCode).DoOnError(error => GUIFactory.instance.MyModalWindow.Show(error.Message, true))

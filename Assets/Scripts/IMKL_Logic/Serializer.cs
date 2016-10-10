@@ -33,8 +33,9 @@ namespace IO
         static string TokenInfoFileName =  "TokenInfo.dat";
        public static void DeleteStoredPackages(){
             File.Delete(Path.Combine(serialisationPath,PackagesFileName));
+            _IMKLPackages=new List<IMKLPackage>();
         }
-        static IEnumerable<IMKLPackage> _IMKLPackages = new List<IMKLPackage>().ToReactiveCollection();
+        static IEnumerable<IMKLPackage> _IMKLPackages = new List<IMKLPackage>();
 
         public static void SaveIMKLPackages(IEnumerable<IMKLPackage> packages)
         {

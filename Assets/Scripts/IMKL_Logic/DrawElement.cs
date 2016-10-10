@@ -6,19 +6,26 @@ using MoreLinq;
 
 namespace IMKL_Logic
 {
-    public abstract class DrawElement : MonoBehaviour
+    public abstract class DrawElement
     {
         static OnlineMapsRange drawRange = new OnlineMapsRange(15, 20);
         public static OnlineMapsRange DrawRange
         {
-            get{
+            get
+            {
                 return drawRange;
             }
         }
 
-       
-        public abstract void Init();
+        public Dictionary<string, string> Properties{
+            protected set; get;
+        }
 
+        public abstract void Init();
+        public DrawElement(Dictionary<string, string> properties)
+        {
+            this.Properties = properties;
+        }
     }
 }
 

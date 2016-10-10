@@ -1,23 +1,36 @@
 todo
 
 
-put all gui in code->change menupanel to extra settings window/panel & add gps on/off & config for shown imkl info
-put toggle for beta and production
+when multiple lines are clicked show list of lines with theri types and only show properties later
 
-make drawelemets proper gameobjects to be able to acces public fields in editor
+faster drawing of elements, progressbar when drawing elements, progressbar on download of multiple packages
+turn of interatcion with ampp while loading
+
+call app for apk KLIPViewer
+
+UI color of websit vianova be and com (blue and orange) + clickable url/icon in bottom of menu
+
 click on line and marker shows properties
 
+
+yes no modal window for clearpackages
+
+zoom in on flanders on open app
+
+
+in extra settings
+be able to jump to where package is drawn, switch beta/production (webservice), click sensitivity
+
+for wednesday bigger buttons/ bigger panel
 
 
 map center and zoom based on package request area and not points
 
-test IOS 
+test IOS/win
 
-scale lines on zoom
+scale lines on soft zoom
 draw markers similar to lines such that they can be drawn over the lines
-
-test on android/ios/win
-
+make draw element a monobehaviour to be able to edit public properties to fine tune line in editor
 
 add if in editor tags for debug logs and send other logs with mail if not in editor
 

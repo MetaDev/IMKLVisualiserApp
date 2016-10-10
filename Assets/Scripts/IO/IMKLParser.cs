@@ -55,10 +55,10 @@ namespace IO
             try
             {
                 //ToList is necessary because the lists are lazely evaluated 
-                return KLBResponses.Where(xdoc=>xdoc!=null).SelectMany(xdoc =>
-                {
-                    return ParsePoints(xdoc).Concat(ParseLines(xdoc));
-                }).ToList();
+                return KLBResponses.Where(xdoc => xdoc != null).SelectMany(xdoc =>
+                    {
+                        return ParsePoints(xdoc).Concat(ParseLines(xdoc));
+                    }).ToList();
             }
             //TODO properly catch xml parse exceptions
             catch (Exception e)
@@ -90,11 +90,10 @@ namespace IO
 
                          };
             return points.Select(point => (DrawElement)new Point(point.pos,
-                        new Dictionary<Point.Properties, string>(){
-                            {Point.Properties.THEMA,point.thema},
-                            {Point.Properties.POINTTYPE,point.pointType},
-                            {Point.Properties.STATUS,point.status}
-                        })
+                           point.pointType,point.thema,point.status,
+                           new Dictionary<string, string>(){
+                            }
+                        )
                         );
         }
         public static string GetKLBResponseID(XDocument KLBResponse)
@@ -120,14 +119,15 @@ namespace IO
                             thema = network.DescendantsByLocalName("utilityNetworkType").Single().AttributeByLocalName("href")
                                                                         .Value.Split('/').Last().ToLowerInvariant(),
                             status = line.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last()
-
+                            // properties = 
                         };
 
 
             return lines.Select(line => (DrawElement)new Line(line.posList,
-                            new Dictionary<Line.Properties, string>(){
-                                        {Line.Properties.THEMA,line.thema},
-                                        {Line.Properties.STATUS,line.status}
+                                        line.thema, line.status
+                                        , new Dictionary<string, string>(){
+                                        {"thema",line.thema},
+                                        {"status",line.status}
                             }
                             ));
         }

@@ -6,23 +6,28 @@ using System.Linq;
 using UniRx;
 using MoreLinq;
 using System;
+using UnityEditor;
 //using More
 namespace IMKL_Logic
 {
     public class Line : DrawElement
     {
 
+        public static Dictionary<VisualisedProperties, string> VisualisedPropertyMap = new Dictionary<VisualisedProperties, string>(){
+            {VisualisedProperties.THEMA,VisualisedProperties.THEMA.ToString().ToLowerInvariant()},
+            {VisualisedProperties.STATUS,VisualisedProperties.STATUS.ToString().ToLowerInvariant()}
+        };
+        public enum VisualisedProperties
+        {
+            THEMA, STATUS
+        }
         public IEnumerable<Vector2d> latLonPos
         {
             get;
             private set;
         }
         public float width = 3F;
-        public enum Properties
-        {
-            THEMA, STATUS
-        }
-        Dictionary<Properties, string> properties;
+
 
         static IDictionary<string, string> lineColorMap = new Dictionary<string, string>(){
             {"electricity","#D73027"},
@@ -50,72 +55,73 @@ namespace IMKL_Logic
         Color color;
         LineStyle style;
 
+        GameObject linestring;
+        LineRenderer lineRenderer;
+        IEnumerable<Vector2> relativePos;
+
         //range of zoom levels for which the elements are visible
-        public Line(IEnumerable<Vector2d> lb72Pos, Dictionary<Properties, string> properties)
+        public Line(IEnumerable<Vector2d> lb72Pos, string thema, string status, Dictionary<string, string> properties) : base(properties)
         {
             latLonPos = lb72Pos.Select(pos => GEO.LambertToLatLong(pos));
-            this.properties = properties;
-            try
-            {
-                this.color = Conversion.hexToColor(lineColorMap[properties[Properties.THEMA]]);
-                this.style = lineStyleMap[properties[Properties.STATUS]];
-            }
-            catch (KeyNotFoundException e)
-            {
-                Debug.Log("The initiated Line is missing or has unidentified properties." + e.Message);
-                Debug.Log(string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()));
-            }
+
+            this.color = Conversion.hexToColor(lineColorMap[thema]);
+            this.style = lineStyleMap[status];
+
 
         }
-        GameObject linestring;
-        IEnumerable<Vector2> relativePos;
         //init and draw are both methods accesing unity API and as such should always be called from main thread
         public override void Init()
         {
-            GameObject container = new GameObject("Line");
-            meshFilter = container.AddComponent<MeshFilter>();
-            meshRenderer = container.AddComponent<MeshRenderer>();
 
-            mesh = meshFilter.sharedMesh = new Mesh();
-            mesh.name = "Line";
-            mat = new Material(Shader.Find("Mobile/Particles/Multiply"));
+            //check if not clicked
+            //TODO distinguish between drag and click, only work on click
+            Observable.EveryUpdate()
+            .Where(_ => Input.GetMouseButtonDown(0)).Subscribe(_ =>
+            {
+                float clickLineSensitivity = 150.0f;
+                var maxDist = (clickLineSensitivity / OnlineMaps.instance.zoom);
+                //works for mobile devices as well
+                //find closest point to line
+                var mousScreenPos = Input.mousePosition;
+                mousScreenPos.z = 0;
+                var mousePos = Camera.main.ScreenToWorldPoint(mousScreenPos);
+                //mousePos.z = 0;
+                var closestDist = CurrentWorldPos.Pairwise((prev, curr) =>
+                {
 
-            meshRenderer.material = mat;
-
-            //first point is position
-            linestring = new GameObject();
-            linestring.name = "line";
-
+                    return HandleUtility.DistancePointToLineSegment(prev, curr, mousePos);
+                }).Min();
+                Debug.Log(closestDist + " " + mousePos);
+            
+                if (closestDist < maxDist)
+                {
+                    lineRenderer.endColor = Color.cyan;
+                    lineRenderer.startColor = Color.cyan;
+                }
+            });
+            linestring = new GameObject("Line");
+            lineRenderer = linestring.AddComponent<LineRenderer>();
+            lineRenderer.material = new Material(Shader.Find("Mobile/Particles/Multiply"));
+            lineRenderer.startColor = color;
+            lineRenderer.endColor = color;
+            lineRenderer.startWidth = width;
+            lineRenderer.endWidth = width;
+            lineRenderer.numPositions = (latLonPos.Count());
+            lineRenderer.textureMode = LineTextureMode.Tile;
+            lineRenderer.material.mainTexture = styleTextureMap[style];
+            lineRenderer.material.SetColor("_TintColor", color);
             switch (style)
             {
                 case LineStyle.DASH:
                     //tiling 0.2 0.4, width 2*
-                    uvScale = new Vector2(0.2f, 0.4f);
-                    width = width * 2;
-                    width = width * 2;
+                    lineRenderer.material.mainTextureScale = new Vector2(0.2f, 0.4f);
+                    lineRenderer.startWidth = width * 2;
+                    lineRenderer.endWidth = width * 2;
                     break;
                 case LineStyle.DASHDOT:
                     //tileing 0.1 0.1
-                    uvScale = new Vector2(0.1f, 0.1f);
+                    lineRenderer.material.mainTextureScale = new Vector2(0.1f, 0.1f);
                     break;
-                case LineStyle.FULL:
-                    uvScale = new Vector2(1f, 1f);
-                    break;
-
-
-            }
-            lineRenderer.textureMode = LineTextureMode.Tile;
-            mat.mainTexture = styleTextureMap[style];
-            lineRenderer.material.SetColor("_TintColor", color);
-            if (style == LineStyle.DASH)
-            {
-
-
-            }
-            else if (style == LineStyle.DASHDOT)
-            {
-                //tileing 0.1 0.1
-                uvScale = new Vector2(0.1f, 0.1f);
             }
 
             OnlineMaps.instance.OnChangePosition += UpdateAbsPosition;
@@ -127,34 +133,37 @@ namespace IMKL_Logic
         }
         public override string ToString()
         {
-            return "properties: " + string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
+            return "properties: " + string.Join(" ", Properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
                 + "Position" + string.Join(" ", latLonPos.Select(p => p.ToString()).ToArray());
         }
-
+        Vector3[] CurrentWorldPos;
         void UpdateAbsPosition()
         {
-            if (originPos != null && prevWorldOriginPos != null && WorldPosCache.ContainsKey(OnlineMaps.instance.zoom))
+            if (originPos != null && prevWorldOriginPos != null && WorldPosAndMeshCache.ContainsKey(OnlineMaps.instance.zoom))
             {
                 var worldOriginPos = OnlineMapsTileSetControl.instance.GetWorldPosition(originPos.x, originPos.y);
                 var delta = worldOriginPos - prevWorldOriginPos;
-                var newWorldPosInMap = WorldPosCache[OnlineMaps.instance.zoom].Select(pos => pos + delta).ToArray();
-                UpdateLine(newWorldPosInMap);
+                var newWorldPosInMap = WorldPosAndMeshCache[OnlineMaps.instance.zoom].Select(pos => pos + delta).ToArray();
+                CurrentWorldPos = newWorldPosInMap;
+                lineRenderer.SetPositions(newWorldPosInMap);
             }
 
         }
         public Vector3 prevWorldOriginPos;
         public Vector2d originPos;
-        public Dictionary<int, Vector3[]> WorldPosCache;
+        public Dictionary<int, Vector3[]> WorldPosAndMeshCache;
         void CacheWorldPos()
         {
-            WorldPosCache = new Dictionary<int, Vector3[]>();
+            WorldPosAndMeshCache = new Dictionary<int, Vector3[]>();
             var prev_zoom = OnlineMaps.instance.zoom;
             foreach (int zoom in Enumerable.Range(DrawElement.DrawRange.min, DrawElement.DrawRange.max))
             {
                 //set the map to appropriate zoom levels
                 OnlineMaps.instance.zoom = zoom;
-                WorldPosCache[zoom] = latLonPos.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos.x, pos.y)).ToArray();
+                WorldPosAndMeshCache[zoom] = latLonPos.Select(pos => OnlineMapsTileSetControl.instance.GetWorldPosition(pos.x, pos.y)).ToArray();
             }
+            //also cache meshes
+
             OnlineMaps.instance.zoom = prev_zoom;
         }
         void UpdateRelPos()
@@ -162,98 +171,16 @@ namespace IMKL_Logic
             if (DrawElement.DrawRange.InRange(OnlineMaps.instance.zoom))
             {
                 //draw the line from previously cached zoom for relatively correct points
-                if (OnlineMapsTileSetControl.instance != null && WorldPosCache.ContainsKey(OnlineMaps.instance.zoom))
+                if (OnlineMapsTileSetControl.instance != null && WorldPosAndMeshCache.ContainsKey(OnlineMaps.instance.zoom))
                 {
-                    //reset GameObject position
-                    //for the relative draw to work
-                    linestring.transform.position = Vector3.zero;
-                    var worldPos = WorldPosCache[OnlineMaps.instance.zoom];
+                    var worldPos = WorldPosAndMeshCache[OnlineMaps.instance.zoom];
                     //save origins for relative draw
                     prevWorldOriginPos = worldPos[0];
-                    //update line
-                    UpdateLine(worldPos);
                 }
             }
         }
 
-        MeshFilter meshFilter;
-        MeshRenderer meshRenderer;
-        Mesh mesh;
-        Vector2 uvScale;
-        void UpdateLine(Vector3[] worldPos)
-        {
 
-            float totalDistance = 0;
-            Vector3 lastPosition = Vector3.zero;
-
-            List<Vector3> vertices = new List<Vector3>();
-            List<Vector2> uvs = new List<Vector2>();
-            List<Vector3> normals = new List<Vector3>();
-            List<int> triangles = new List<int>();
-
-            List<Vector3> positions = new List<Vector3>();
-            //skip first position for angle calculation
-            foreach (Vector3 position in worldPos.Skip(1))
-            {
-                // Calculate angle between coordinates.
-                float a = OnlineMapsUtils.Angle2DRad(lastPosition, position, 90);
-
-                // Calculate offset
-                Vector3 off = new Vector3(Mathf.Cos(a) * width, 0, Mathf.Sin(a) * width);
-
-                // Init verticles, normals and triangles.
-                int vCount = vertices.Count;
-
-                vertices.Add(lastPosition + off);
-                vertices.Add(lastPosition - off);
-                vertices.Add(position + off);
-                vertices.Add(position - off);
-
-                normals.Add(Vector3.up);
-                normals.Add(Vector3.up);
-                normals.Add(Vector3.up);
-                normals.Add(Vector3.up);
-
-                triangles.Add(vCount);
-                triangles.Add(vCount + 3);
-                triangles.Add(vCount + 1);
-                triangles.Add(vCount);
-                triangles.Add(vCount + 2);
-                triangles.Add(vCount + 3);
-
-                totalDistance += (lastPosition - position).magnitude;
-
-
-                lastPosition = position;
-            }
-
-            float tDistance = 0;
-
-            for (int i = 1; i < positions.Count; i++)
-            {
-                float distance = (positions[i - 1] - positions[i]).magnitude;
-
-                // Updates UV
-                uvs.Add(new Vector2(tDistance / totalDistance, 0));
-                uvs.Add(new Vector2(tDistance / totalDistance, 1));
-
-                tDistance += distance;
-
-                uvs.Add(new Vector2(tDistance / totalDistance, 0));
-                uvs.Add(new Vector2(tDistance / totalDistance, 1));
-            }
-
-            // Update mesh
-            mesh.vertices = vertices.ToArray();
-            mesh.normals = normals.ToArray();
-            mesh.uv = uvs.ToArray();
-            mesh.triangles = triangles.ToArray();
-
-            // Scale texture
-            Vector2 scale = new Vector2(totalDistance / width, 1);
-            scale.Scale(uvScale);
-            meshRenderer.material.mainTextureScale = scale;
-        }
 
     }
 }
