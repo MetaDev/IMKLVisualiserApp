@@ -1,10 +1,21 @@
 todo
 
+debug all clicked lines
+
+make UI tabs work
 
 when multiple lines are clicked show list of lines with theri types and only show properties later
 
-faster drawing of elements, progressbar when drawing elements, progressbar on download of multiple packages
-turn of interatcion with ampp while loading
+faster drawing of elements(add as variable to config amount of drawelemets to be made), 
+progressbar when drawing elements, progressbar on download of multiple packages
+turn of interatcion with map while loading
+
+rewrite drawpackages in GUIFactory with observables
+
+deeper zoom allowed 
+OnlineMaps.zoom
+OnlineMapsControlBase.ZoomOnPoint
+OnlineMapsMarkerBase.constructor
 
 call app for apk KLIPViewer
 

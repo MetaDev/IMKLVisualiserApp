@@ -13,14 +13,7 @@ namespace IMKL_Logic
     public class Line : DrawElement
     {
 
-        public static Dictionary<VisualisedProperties, string> VisualisedPropertyMap = new Dictionary<VisualisedProperties, string>(){
-            {VisualisedProperties.THEMA,VisualisedProperties.THEMA.ToString().ToLowerInvariant()},
-            {VisualisedProperties.STATUS,VisualisedProperties.STATUS.ToString().ToLowerInvariant()}
-        };
-        public enum VisualisedProperties
-        {
-            THEMA, STATUS
-        }
+       
         public IEnumerable<Vector2d> latLonPos
         {
             get;
@@ -55,15 +48,14 @@ namespace IMKL_Logic
         Color color;
         LineStyle style;
 
-        GameObject linestring;
         LineRenderer lineRenderer;
         IEnumerable<Vector2> relativePos;
-
+        string Thema;
         //range of zoom levels for which the elements are visible
         public Line(IEnumerable<Vector2d> lb72Pos, string thema, string status, Dictionary<string, string> properties) : base(properties)
         {
             latLonPos = lb72Pos.Select(pos => GEO.LambertToLatLong(pos));
-
+            this.Thema=thema;
             this.color = Conversion.hexToColor(lineColorMap[thema]);
             this.style = lineStyleMap[status];
 
@@ -72,35 +64,8 @@ namespace IMKL_Logic
         //init and draw are both methods accesing unity API and as such should always be called from main thread
         public override void Init()
         {
-
-            //check if not clicked
-            //TODO distinguish between drag and click, only work on click
-            Observable.EveryUpdate()
-            .Where(_ => Input.GetMouseButtonDown(0)).Subscribe(_ =>
-            {
-                float clickLineSensitivity = 150.0f;
-                var maxDist = (clickLineSensitivity / OnlineMaps.instance.zoom);
-                //works for mobile devices as well
-                //find closest point to line
-                var mousScreenPos = Input.mousePosition;
-                mousScreenPos.z = 0;
-                var mousePos = Camera.main.ScreenToWorldPoint(mousScreenPos);
-                //mousePos.z = 0;
-                var closestDist = CurrentWorldPos.Pairwise((prev, curr) =>
-                {
-
-                    return HandleUtility.DistancePointToLineSegment(prev, curr, mousePos);
-                }).Min();
-                Debug.Log(closestDist + " " + mousePos);
-            
-                if (closestDist < maxDist)
-                {
-                    lineRenderer.endColor = Color.cyan;
-                    lineRenderer.startColor = Color.cyan;
-                }
-            });
-            linestring = new GameObject("Line");
-            lineRenderer = linestring.AddComponent<LineRenderer>();
+            GO = new GameObject("Line");
+            lineRenderer = GO.AddComponent<LineRenderer>();
             lineRenderer.material = new Material(Shader.Find("Mobile/Particles/Multiply"));
             lineRenderer.startColor = color;
             lineRenderer.endColor = color;
@@ -130,6 +95,7 @@ namespace IMKL_Logic
             originPos = latLonPos.First();
             CacheWorldPos();
             UpdateRelPos();
+
         }
         public override string ToString()
         {
@@ -148,6 +114,14 @@ namespace IMKL_Logic
                 lineRenderer.SetPositions(newWorldPosInMap);
             }
 
+        }
+        protected override bool ClickWithinDistance(Vector3 worldMousePos,float maxDist)
+        {
+            //find closest point to line
+            return CurrentWorldPos
+            .Pairwise((prev, curr) => Vector3.Distance(ProjectPointOnLineSegment(prev, curr, worldMousePos),worldMousePos))
+            .Any(dist => dist < maxDist);
+         
         }
         public Vector3 prevWorldOriginPos;
         public Vector2d originPos;
@@ -179,9 +153,84 @@ namespace IMKL_Logic
                 }
             }
         }
+        public static Vector3 ProjectPointOnLineSegment(Vector3 linePoint1, Vector3 linePoint2, Vector3 point)
+        {
 
+            Vector3 vector = linePoint2 - linePoint1;
 
+            Vector3 projectedPoint = ProjectPointOnLine(linePoint1, vector.normalized, point);
 
+            int side = PointOnWhichSideOfLineSegment(linePoint1, linePoint2, projectedPoint);
+
+            //The projected point is on the line segment
+            if (side == 0)
+            {
+                return projectedPoint;
+            }
+
+            if (side == 1)
+            {
+                return linePoint1;
+            }
+
+            if (side == 2)
+            {
+                return linePoint2;
+            }
+
+            //output is invalid
+            return Vector3.zero;
+        }
+        public static Vector3 ProjectPointOnLine(Vector3 linePoint, Vector3 lineVec, Vector3 point)
+        {
+
+            //get vector from point on line to point in space
+            Vector3 linePointToPoint = point - linePoint;
+
+            float t = Vector3.Dot(linePointToPoint, lineVec);
+
+            return linePoint + lineVec * t;
+        }
+        public static int PointOnWhichSideOfLineSegment(Vector3 linePoint1, Vector3 linePoint2, Vector3 point)
+        {
+
+            Vector3 lineVec = linePoint2 - linePoint1;
+            Vector3 pointVec = point - linePoint1;
+
+            float dot = Vector3.Dot(pointVec, lineVec);
+
+            //point is on side of linePoint2, compared to linePoint1
+            if (dot > 0)
+            {
+
+                //point is on the line segment
+                if (pointVec.magnitude <= lineVec.magnitude)
+                {
+
+                    return 0;
+                }
+
+                //point is not on the line segment and it is on the side of linePoint2
+                else
+                {
+
+                    return 2;
+                }
+            }
+
+            //Point is not on side of linePoint2, compared to linePoint1.
+            //Point is not on the line segment and it is on the side of linePoint1.
+            else
+            {
+
+                return 1;
+            }
+        }
+
+        public override string GetTextForPropertiesPanel()
+        {
+            return Thema;
+        }
     }
 }
 

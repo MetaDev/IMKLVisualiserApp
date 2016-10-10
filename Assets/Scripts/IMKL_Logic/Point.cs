@@ -30,12 +30,12 @@ namespace IMKL_Logic
         string Thema;
         string Status;
         // Use this for initialization
-        public Point(Vector2d pos,string pointType,string thema,string status, Dictionary<string, string> properties) : base(properties)
+        public Point(Vector2d pos, string pointType, string thema, string status, Dictionary<string, string> properties) : base(properties)
         {
             //check properties
-            PointType=pointType;
-            Thema=thema;
-            Status=status;
+            PointType = pointType;
+            Thema = thema;
+            Status = status;
             this.latlon = GEO.LambertToLatLong(pos);
 
         }
@@ -86,6 +86,14 @@ namespace IMKL_Logic
             return prefabIcons[name];
 
         }
+        protected override bool ClickWithinDistance(Vector3 mouseWorldPos, float maxDist)
+        {
+            if (GO != null)
+            {
+                return false;
+            }
+            return Vector3.Distance(mouseWorldPos, GO.transform.position) < maxDist;
+        }
         //draw is a seperate method because the creation of a point and it's actual drawing should be done on a seperate thread
         public override void Init()
         {
@@ -93,8 +101,8 @@ namespace IMKL_Logic
             GameObject prefab = null;
             try
             {
-                prefab = GetIconPrefab(Thema,PointType,Status);
-                      
+                prefab = GetIconPrefab(Thema, PointType, Status);
+
             }
             catch (KeyNotFoundException e)
             {
@@ -112,8 +120,13 @@ namespace IMKL_Logic
             var marker3D = control.AddMarker3D(latlon, prefab);
             marker3D.scale = scale;
             marker3D.range = DrawElement.DrawRange;
+            GO = marker3D.instance;
         }
 
+        public override string GetTextForPropertiesPanel()
+        {
+            return Thema;
+        }
     }
 
 }

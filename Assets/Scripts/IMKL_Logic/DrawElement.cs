@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Utility;
 using MoreLinq;
-
+using UniRx;
 namespace IMKL_Logic
 {
     public abstract class DrawElement
@@ -16,11 +16,39 @@ namespace IMKL_Logic
                 return drawRange;
             }
         }
-
-        public Dictionary<string, string> Properties{
+        protected GameObject GO;
+        public Dictionary<string, string> Properties
+        {
             protected set; get;
         }
-
+        protected static float clickLineSensitivity = 150.0f;
+        public abstract string GetTextForPropertiesPanel();
+        protected abstract bool ClickWithinDistance(Vector3 worldMousePos, float maxDist);
+        public IObservable<DrawElement> OnClickPropertiesObservable()
+        {
+            //check if not clicked
+            //works for mobile devices as well
+            //TODO distinguish between drag and click, only work on click see UNirx drag and drop
+            var obs = Observable.EveryUpdate()
+             .Where(_ => Input.GetMouseButtonDown(0))
+             .Where(_ => ClickWithinDistance(InputMousePositionToWorld(Input.mousePosition), clickLineSensitivity / OnlineMaps.instance.zoom))
+             .Do(_=>Debug.Log("click"))
+             .Select(_ => this);
+            //destroy observable when element is destroyed
+            obs.Subscribe().AddTo(GO);
+            return obs;
+        }
+        Vector3 InputMousePositionToWorld(Vector3 inputMousePos)
+        {
+            var maxDist = (clickLineSensitivity / OnlineMaps.instance.zoom);
+            //works for mobile devices as well
+            //find closest point to line
+            var mousScreenPos = inputMousePos;
+            mousScreenPos.z = 0;
+            var mousePos = Camera.main.ScreenToWorldPoint(mousScreenPos);
+            mousePos.z = 0;
+            return mousePos;
+        }
         public abstract void Init();
         public DrawElement(Dictionary<string, string> properties)
         {

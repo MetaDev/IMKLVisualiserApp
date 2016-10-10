@@ -16,8 +16,8 @@ using Utility;
 public class GUIFactory : MonoBehaviour
 {
     public CustomToggle MenuToggle;
-    public MultiSelectPanel IMKLPackageInfoPanel;
-    public MultiSelectPanel IMKLPackageDrawPanel;
+    public MultiSelectPanel OnlinePackagesPanel;
+    public MultiSelectPanel LocalPackagesPanel;
 
     public Button RefreshOnlinePackages;
 
@@ -32,6 +32,9 @@ public class GUIFactory : MonoBehaviour
     public Button OKLoginButton;
     public InputField AuthCodeInputField;
 
+    public MultiSelectPanel SelectedDrawElements;
+    public Text DrawElementPropertiesUI;
+
 
     void LoadPacketInfo()
     {
@@ -41,9 +44,9 @@ public class GUIFactory : MonoBehaviour
             .DoOnError(error => MyModalWindow.Show(error.Message, true))
             .SelectMany(packages =>
           {
-              IMKLPackageInfoPanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package, package.DownloadIMKL)));
+              OnlinePackagesPanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package, package.DownloadIMKL)));
               //every time ok is clicked the selected items are streamed
-              return IMKLPackageInfoPanel.OnSelectedItemsAsObservable();
+              return OnlinePackagesPanel.OnSelectedItemsAsObservable();
           }).Subscribe(items =>
           {
               MyModalWindow.Show("Please wait while downloading selected package data", false);
@@ -73,8 +76,10 @@ public class GUIFactory : MonoBehaviour
         //refresh the draw panel on the content of the imkl packages
         Serializer.PackagesChanged().Subscribe(packages => AddDrawPackages(packages));
         //TODO delete previous drawing on map
-        IMKLPackageDrawPanel.OnSelectedItemsAsObservable()
+        LocalPackagesPanel.OnSelectedItemsAsObservable()
         .Do(_ => MyModalWindow.Show("Please wait while elements from the package are being drawn.", false))
+        //Add a small delay to show message before draing starts
+        .Delay(TimeSpan.FromSeconds(0.2f))
         .Subscribe(
             items =>
             {
@@ -104,31 +109,68 @@ public class GUIFactory : MonoBehaviour
         //Login
         OKLoginButton.OnClickAsObservable().Subscribe(_ => Login());
         //line stuff
-        
+
     }
     void AddDrawPackages(IEnumerable<IMKLPackage> packages)
     {
-        IMKLPackageDrawPanel.AddItems(packages.Where(package => package.KLBResponses != null)
-                    .Select(package => Tuple.Create(package.Reference, (object)package, true)));
+        LocalPackagesPanel.AddItems(packages.Where(package => package.KLBResponses != null)
+                    .Select(package =>
+                    {
+                        return Tuple.Create(package.Reference, (object)package);
+                    }));
     }
 
-    //TODO Add loading screen 
+    public void InitDrawElementProperties()
+    {
+        SelectedDrawElements.OnSelectedItemsAsObservable().Subscribe(items =>
+        {
+            var properties = (Dictionary<string, string>)items.First().content;
+            DrawElementPropertiesUI.text = string.Join("\n", properties.ToList()
+            .Select(pair => pair.Key + ": " + pair.Value).ToArray());
+        });
+        //TODO add back button to eltproperty UI
+
+    }
+    public void AddDrawElementToPropertiesObservable(string text, IObservable<Dictionary<string, string>> obsClick)
+    {
+        obsClick = obsClick.Merge(obsClick).Delay(TimeSpan.FromSeconds(0.5f))
+        .Do(properties => SelectedDrawElements.AddItem(Tuple.Create(text, (object)properties)));
+    }
+    //TODO Add progressbar
 
     IEnumerator DrawPackages(IEnumerable<IMKLPackage> packages)
     {
         if (packages != null)
         {
+            List<DrawElement> elements = new List<DrawElement>();
             foreach (IMKLPackage package in packages)
             {
                 var drawElements = IMKLParser.ParseDrawElements(package.GetKLBXML())
                              .Where(elts => elts != null);
                 MapHelper.ZoomAndCenterOnElements(drawElements);
+                int i = 0;
+                elements.AddRange(drawElements);
                 foreach (DrawElement elt in drawElements)
                 {
                     elt.Init();
-                    yield return null;
+                    //draw X elements per frame
+                    if (i % 5 == 0)
+                    {
+                        yield return null;
+                    }
+                    i++;
                 }
             }
+
+            //subscribe property panel to all elements
+            SelectedDrawElements.ClearItemUIs();
+            Debug.Log(elements.Count());
+            Observable.Zip(elements.Select(elt => elt.OnClickPropertiesObservable())).Subscribe(DrawElements =>
+            {
+                Debug.Log("all clicked elements"+DrawElements.Count());
+                SelectedDrawElements.AddItems(DrawElements
+                    .Select(elts => Tuple.Create(elts.GetTextForPropertiesPanel(), (object)elts.Properties)));
+            });
         }
         else
         {

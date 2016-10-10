@@ -26,6 +26,7 @@ public class MultiSelectItem : MonoBehaviour
         this.Interactable=interactable;
         this.Group=group;
     }
+   
     public bool IsSelected()
     {
         return toggle.isOn;
