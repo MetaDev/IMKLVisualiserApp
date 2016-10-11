@@ -1,12 +1,10 @@
 todo
 
+ask chris UI ok
 
-make UI tabs work
+update ui for modal window as well
 
-create dictionary with element properteis
-
-see VNS properties for some examples of fields and vns_tools vns_setproperties for the corresponding xml position
-
+ask chris new code
 
 faster drawing of elements(add as variable to config amount of drawelemets to be made), 
 progressbar when drawing elements, progressbar on download of multiple packages
@@ -15,24 +13,8 @@ turn of interatcion with map while loading
 properly resize map to canvas size
 
 
-call app for apk KLIPViewer
-
-UI color of websit vianova be and com (blue and orange) + clickable url/icon in bottom of menu
-
-click on line and marker shows properties
-
-
-
-zoom in on flanders on open app
-
-
 in extra settings
 be able to jump to where package is drawn, switch beta/production (webservice), click sensitivity
-
-for wednesday bigger buttons/ bigger panel
-
-
-map center and zoom based on package request area and not points
 
 test IOS/win
 

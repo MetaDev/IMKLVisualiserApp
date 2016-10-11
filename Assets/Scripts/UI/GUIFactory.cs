@@ -21,7 +21,7 @@ public class GUIFactory : MonoBehaviour
         public Button TabButton;
         public GameObject Panel;
     }
-
+    public Button FooterURLButton;
     public SideMenuRight right;
     public MenuTabAndPanel[] MenuTabAndPanels;
     public MultiSelectPanel OnlinePackagesPanel;
@@ -93,6 +93,8 @@ public class GUIFactory : MonoBehaviour
     {
         //Singleton
         instance = this;
+        //zoom and center map on flanders
+        MapHelper.ZoomAndCenter(new Vector2(4.2159f,51.0236f),9);
         //Draw Panel
         InitDrawPanel();
         //online packages panel
@@ -106,7 +108,7 @@ public class GUIFactory : MonoBehaviour
         //first tab starts open
         ClickTab(0);
 
-       
+        FooterURLButton.OnClickAsObservable().Subscribe(_=> Application.OpenURL("http://www.vianova-systems.be/"));
 
     }
     void ClickTab(int i)
@@ -140,7 +142,7 @@ public class GUIFactory : MonoBehaviour
             {
                 var drawElements = IMKLParser.ParseDrawElements(package.GetKLBXML())
                              .Where(elts => elts != null);
-                MapHelper.ZoomAndCenterOnElements(drawElements);
+                MapHelper.ZoomAndCenterOnElements(package.MapRequestZone);
                 int i = 0;
                 elements.AddRange(drawElements);
                 foreach (DrawElement elt in drawElements)

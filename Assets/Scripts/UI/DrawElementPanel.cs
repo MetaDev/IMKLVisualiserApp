@@ -29,8 +29,8 @@ public class DrawElementPanel : MonoBehaviour
            var properties = (Dictionary<string, string>)items.First().content;
            DrawElementPropertiesText.text = string.Join("\n", properties.ToList()
            .Select(pair => pair.Key + ": " + pair.Value).ToArray());
-		   DrawElementProperties.SetActive(true);
-		   DrawElementsSelected.gameObject.SetActive(false);
+           DrawElementProperties.SetActive(true);
+           DrawElementsSelected.gameObject.SetActive(false);
        });
         //TODO add back button to eltproperty UI
         //draw element properties
@@ -44,11 +44,13 @@ public class DrawElementPanel : MonoBehaviour
         DrawElementsSelected.gameObject.SetActive(true);
         //subscribe property panel to all elements
         DrawElementsSelected.ClearItemUIs();
-        Observable.Zip(elements.Select(elt => elt.OnClickPropertiesObservable())).Subscribe(DrawElements =>
-        {
+        Observable.Zip(elements.Select(elt => elt.OnClickPropertiesObservable()))
+        .Select(elts => elts.Where(elt => elt != null))
+        .Where(elts => elts.Count() > 0).Subscribe(DrawElements =>
+          {
             //the observable returns the elements properties if the element has been clicked and null otherwise
-            DrawElementsSelected.AddItems(DrawElements.Where(elts => elts != null)
+            DrawElementsSelected.AddItems(DrawElements
         .Select(elts => Tuple.Create(elts.GetTextForPropertiesPanel(), (object)elts.Properties)));
-        });
+          });
     }
 }
