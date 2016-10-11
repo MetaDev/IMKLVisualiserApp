@@ -31,9 +31,8 @@ namespace IMKL_Logic
             //TODO distinguish between drag and click, only work on click see UNirx drag and drop
             var obs = Observable.EveryUpdate()
              .Where(_ => Input.GetMouseButtonDown(0))
-             .Where(_ => ClickWithinDistance(InputMousePositionToWorld(Input.mousePosition), clickLineSensitivity / OnlineMaps.instance.zoom))
-             .Do(_=>Debug.Log("click"))
-             .Select(_ => this);
+             .Select(_ => ClickWithinDistance(InputMousePositionToWorld(Input.mousePosition), clickLineSensitivity / OnlineMaps.instance.zoom)
+             ? this : null);
             //destroy observable when element is destroyed
             obs.Subscribe().AddTo(GO);
             return obs;

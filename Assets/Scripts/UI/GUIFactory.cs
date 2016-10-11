@@ -15,26 +15,26 @@ using Utility;
 
 public class GUIFactory : MonoBehaviour
 {
-    public CustomToggle MenuToggle;
+    [System.Serializable]
+    public class MenuTabAndPanel
+    {
+        public Button TabButton;
+        public GameObject Panel;
+    }
+
+    public SideMenuRight right;
+    public MenuTabAndPanel[] MenuTabAndPanels;
     public MultiSelectPanel OnlinePackagesPanel;
     public MultiSelectPanel LocalPackagesPanel;
+    
 
     public Button RefreshOnlinePackages;
 
     public ModalWindow MyModalWindow;
 
-    public GameObject FixedMenuSlidePart;
-    public Button HiddenMenuBtn;
-    public GameObject HiddenMenu;
-    public Toggle GPSToggle;
-    public Button ClearLocalPackages;
-
-    public Button OKLoginButton;
-    public InputField AuthCodeInputField;
-
-    public MultiSelectPanel SelectedDrawElements;
-    public Text DrawElementPropertiesUI;
-
+    
+   
+    
 
     void LoadPacketInfo()
     {
@@ -95,22 +95,30 @@ public class GUIFactory : MonoBehaviour
         instance = this;
         //Draw Panel
         InitDrawPanel();
-        //Info Panel
-        //TODO load packet info is assigned here
+        //online packages panel
         RefreshOnlinePackages.OnClickAsObservable().Subscribe(_ => LoadPacketInfo());
-        //toggle
-        MenuToggle.MyToggle.OnValueChangedAsObservable().Subscribe(isOn => FixedMenuSlidePart.SetActive(isOn));
-        //HiddenMenuBtn
-        HiddenMenuBtn.OnClickAsObservable().Subscribe(_ => HiddenMenu.SetActive(true));
-        //GPS toggle
-        GPSToggle.OnValueChangedAsObservable().Subscribe(isOn => OnlineMapsLocationService.instance.updatePosition = isOn);
-        //clear packages
-        ClearLocalPackages.OnClickAsObservable().Subscribe(_ => Serializer.DeleteStoredPackages());
-        //Login
-        OKLoginButton.OnClickAsObservable().Subscribe(_ => Login());
-        //line stuff
+
+        //Tab menu
+        Enumerable.Range(0, MenuTabAndPanels.Length)
+        .ForEach(i =>MenuTabAndPanels[i].TabButton.OnClickAsObservable()
+        .Subscribe(_=>ClickTab(i)));
+        //tab menu init
+        //first tab starts open
+        ClickTab(0);
+
+       
 
     }
+    void ClickTab(int i)
+    {
+    
+        Enumerable.Range(0, MenuTabAndPanels.Length).ForEach(j =>
+        {
+            MenuTabAndPanels[j].TabButton.interactable = j!=i;
+            MenuTabAndPanels[j].Panel.SetActive(j==i);
+        });
+    }
+
     void AddDrawPackages(IEnumerable<IMKLPackage> packages)
     {
         LocalPackagesPanel.AddItems(packages.Where(package => package.KLBResponses != null)
@@ -120,24 +128,9 @@ public class GUIFactory : MonoBehaviour
                     }));
     }
 
-    public void InitDrawElementProperties()
-    {
-        SelectedDrawElements.OnSelectedItemsAsObservable().Subscribe(items =>
-        {
-            var properties = (Dictionary<string, string>)items.First().content;
-            DrawElementPropertiesUI.text = string.Join("\n", properties.ToList()
-            .Select(pair => pair.Key + ": " + pair.Value).ToArray());
-        });
-        //TODO add back button to eltproperty UI
 
-    }
-    public void AddDrawElementToPropertiesObservable(string text, IObservable<Dictionary<string, string>> obsClick)
-    {
-        obsClick = obsClick.Merge(obsClick).Delay(TimeSpan.FromSeconds(0.5f))
-        .Do(properties => SelectedDrawElements.AddItem(Tuple.Create(text, (object)properties)));
-    }
+
     //TODO Add progressbar
-
     IEnumerator DrawPackages(IEnumerable<IMKLPackage> packages)
     {
         if (packages != null)
@@ -161,16 +154,8 @@ public class GUIFactory : MonoBehaviour
                     i++;
                 }
             }
-
-            //subscribe property panel to all elements
-            SelectedDrawElements.ClearItemUIs();
-            Debug.Log(elements.Count());
-            Observable.Zip(elements.Select(elt => elt.OnClickPropertiesObservable())).Subscribe(DrawElements =>
-            {
-                Debug.Log("all clicked elements"+DrawElements.Count());
-                SelectedDrawElements.AddItems(DrawElements
-                    .Select(elts => Tuple.Create(elts.GetTextForPropertiesPanel(), (object)elts.Properties)));
-            });
+            right.ElementPanel.SubscribeToDrawnElements(elements);
+            
         }
         else
         {
@@ -180,12 +165,7 @@ public class GUIFactory : MonoBehaviour
     }
 
 
-    void Login()
-    {
-        var authCode = AuthCodeInputField.text;
-        WebService.LoginWithAuthCode(authCode).DoOnError(error => GUIFactory.instance.MyModalWindow.Show(error.Message, true))
-            .Subscribe(webRequest => GUIFactory.instance.MyModalWindow.Show("Login succeeded", true));
-    }
+   
 
 
 

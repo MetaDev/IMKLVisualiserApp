@@ -10,42 +10,43 @@ public class MultiSelectPanel : MonoBehaviour
     // Use this for initialization
     public Button ok;
     public ToggleGroup Group;
-    Transform contentView;
-    GameObject ItemUI;
-    void Start()
-    {
-        ItemUI = Resources.Load("GUI/MultiSelectItem") as GameObject;
-        contentView = transform.Find("Scroll View").GetComponent<ScrollRect>().content;
+
+    public RectTransform contentView{
+        get {return transform.Find("Scroll View").GetComponent<ScrollRect>().content;}
     }
+    public MultiSelectItem ItemUI;
+
 
     public IObservable<IEnumerable<MultiSelectItem>> OnSelectedItemsAsObservable()
     {
         return ok.OnClickAsObservable().Select(_ => itemUIs.Where(i => i.IsSelected()));
     }
-    MultiSelectItem InitItem()
+    MultiSelectItem _InitItemUI()
     {
-        var go = GameObject.Instantiate(ItemUI);
+        var go = GameObject.Instantiate(ItemUI.gameObject);
+        go.SetActive(true);
         var itemUI = go.GetComponent<MultiSelectItem>();
         itemUI.transform.SetParent(contentView, false);
-        itemUIs.Add(itemUI);
         return itemUI;
     }
-    public void AddItem(Tuple<string, System.Object, bool> item)
+    MultiSelectItem InitItemUI(Tuple<string, System.Object, bool> item)
     {
-        var itemUI = InitItem();
+        var itemUI = _InitItemUI();
         itemUI.Init(item.Item1, item.Item2, item.Item3, Group);
+        return itemUI;
     }
-    public void AddItem(Tuple<string, System.Object> item)
+    MultiSelectItem InitItemUI(Tuple<string, System.Object> item)
     {
-        var itemUI = InitItem();
-        itemUI.Init(item.Item1, item.Item2,group: Group);
+        var itemUI = _InitItemUI();
+        itemUI.Init(item.Item1, item.Item2, group: Group);
+        return itemUI;
     }
     public void AddItems(IEnumerable<Tuple<string, System.Object, bool>> items)
     {
         ClearItemUIs();
         //add new ones
         //the togglegroup has to be created in superclass because Start() cannot be overridden
-        items.ForEach(item => AddItem(item));
+        itemUIs = items.Select(item => InitItemUI(item)).ToList();
 
     }
     public void ClearItemUIs()
@@ -53,15 +54,14 @@ public class MultiSelectPanel : MonoBehaviour
         var content = transform.Find("Scroll View").GetComponent<ScrollRect>().content;
         //remove items, and delete them
         content.transform.DetachChildren();
-        // itemUIs.ForEach(iUI => Destroy(iUI));
-        itemUIs.Clear();
+        itemUIs.ForEach(iUI => Destroy(iUI));
     }
     public void AddItems(IEnumerable<Tuple<string, System.Object>> items)
     {
         ClearItemUIs();
         //add new ones
         //the togglegroup has to be created in superclass because Start() cannot be overridden
-        items.ForEach(item => AddItem(item));
+        itemUIs = items.Select(item => InitItemUI(item)).ToList();
 
     }
 

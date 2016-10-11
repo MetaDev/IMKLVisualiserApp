@@ -86,15 +86,17 @@ namespace IO
                              pos = StringParser.parsePos(point.DescendantsByLocalName("pos").Single().Value),
                              thema = network.DescendantsByLocalName("utilityNetworkType").Single().AttributeByLocalName("href")
                                                                         .Value.Split('/').Last(),
-                             status = point.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last()
-
+                             status = point.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last(),
+                             //Add additional desired properties as variables
                          };
             return points.Select(point => (DrawElement)new Point(point.pos,
-                           point.pointType,point.thema,point.status,
-                           new Dictionary<string, string>(){
-                            }
-                        )
+                           point.pointType, point.thema, point.status,
+                           ClassToDict(point))
                         );
+        }
+        static Dictionary<string,string> ClassToDict(object a){
+            return a.GetType().GetProperties().ToDictionary(x => x.Name, x => x.GetValue(a, null).ToString());
+
         }
         public static string GetKLBResponseID(XDocument KLBResponse)
         {
@@ -118,17 +120,12 @@ namespace IO
                             posList = StringParser.parsePosList(link.DescendantsByLocalName("posList").Single().Value),
                             thema = network.DescendantsByLocalName("utilityNetworkType").Single().AttributeByLocalName("href")
                                                                         .Value.Split('/').Last().ToLowerInvariant(),
-                            status = line.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last()
-                            // properties = 
+                            status = line.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last(),
                         };
 
 
             return lines.Select(line => (DrawElement)new Line(line.posList,
-                                        line.thema, line.status
-                                        , new Dictionary<string, string>(){
-                                        {"thema",line.thema},
-                                        {"status",line.status}
-                            }
+                                        line.thema, line.status,ClassToDict(line)
                             ));
         }
 

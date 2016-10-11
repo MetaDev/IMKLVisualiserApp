@@ -1,21 +1,19 @@
 todo
 
-debug all clicked lines
 
 make UI tabs work
 
-when multiple lines are clicked show list of lines with theri types and only show properties later
+create dictionary with element properteis
+
+see VNS properties for some examples of fields and vns_tools vns_setproperties for the corresponding xml position
+
 
 faster drawing of elements(add as variable to config amount of drawelemets to be made), 
 progressbar when drawing elements, progressbar on download of multiple packages
 turn of interatcion with map while loading
 
-rewrite drawpackages in GUIFactory with observables
+properly resize map to canvas size
 
-deeper zoom allowed 
-OnlineMaps.zoom
-OnlineMapsControlBase.ZoomOnPoint
-OnlineMapsMarkerBase.constructor
 
 call app for apk KLIPViewer
 
@@ -24,7 +22,6 @@ UI color of websit vianova be and com (blue and orange) + clickable url/icon in 
 click on line and marker shows properties
 
 
-yes no modal window for clearpackages
 
 zoom in on flanders on open app
 
@@ -43,6 +40,11 @@ scale lines on soft zoom
 draw markers similar to lines such that they can be drawn over the lines
 make draw element a monobehaviour to be able to edit public properties to fine tune line in editor
 
+deeper zoom allowed / smooth zoom for line
+OnlineMaps.zoom
+OnlineMapsControlBase.ZoomOnPoint
+OnlineMapsMarkerBase.constructor
+
 add if in editor tags for debug logs and send other logs with mail if not in editor
 
 destroy draw and ui elements if no longer used
@@ -50,6 +52,13 @@ destroy draw and ui elements if no longer used
 increase resolution 
 You can increase the text size stylize map using snazzymaps or mapbox.
 Read sections «Styled Google Maps» and «Using Mapbox» in the documentation.
+
+yes no modal window for clearpackages
+
+rewrite drawpackages in GUIFactory with observables
+
+refactor GUIFactory more hierarchically
+
 
 documentation!!
 
