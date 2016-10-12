@@ -28,7 +28,8 @@ namespace IO
             }
             catch (Ionic.Zip.ZipException e)
             {
-                GUIFactory.instance.MyModalWindow.Show("Something whent wrong when unzipping package: " + e.Message, true);
+                GUIFactory.instance.MyModalWindow.Show("Something whent wrong when unzipping package: " + e.Message,
+                ModalWindow.ModalType.OK);
                 Debug.Log("Something whent wrong when unzipping: " + e.Message);
                 return null;
             }

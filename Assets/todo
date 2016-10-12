@@ -1,31 +1,28 @@
 todo
 
+debug click on point
 
-update ui for modal window 
+render points over lines
 
-scale lines on soft zoom
-draw markers similar to lines such that they can be drawn over the lines
-make draw element a monobehaviour to be able to edit public properties to fine tune line in editor
+destroy draw and ui elements if no longer used (check during use)
 
-deeper zoom allowed / smooth zoom for line
-OnlineMaps.zoom
-OnlineMapsControlBase.ZoomOnPoint
-OnlineMapsMarkerBase.constructor
+in extra settings
+be able to jump to where package is drawn (in right menu)
 
-destroy draw and ui elements if no longer used
+test android/win
+ask chris UI ok
 
-yes no modal window for clearpackages
+instead of multiselect for local packages make items buttons and open option on click
+->draw elements/ download 
 
 cache tiles of requested package->add settings option
 
-in extra settings
-be able to jump to where package is drawn (in right menu), switch beta/production (webservice)
-
-test IOS/win
-ask chris UI ok
-
-
 ---------------------
+
+deeper zoom allowed / smooth zoom for map and it's elements
+OnlineMaps.zoom
+OnlineMapsControlBase.ZoomOnPoint
+OnlineMapsMarkerBase.constructor
 
 
 rewrite drawpackages in GUIFactory with observables

@@ -6,14 +6,13 @@ using System.Linq;
 using UniRx;
 using MoreLinq;
 using System;
-using UnityEditor;
 //using More
 namespace IMKL_Logic
 {
     public class Line : DrawElement
     {
 
-       
+
         public IEnumerable<Vector2d> latLonPos
         {
             get;
@@ -55,7 +54,7 @@ namespace IMKL_Logic
         public Line(IEnumerable<Vector2d> lb72Pos, string thema, string status, Dictionary<string, string> properties) : base(properties)
         {
             latLonPos = lb72Pos.Select(pos => GEO.LambertToLatLong(pos));
-            this.Thema=thema;
+            this.Thema = thema;
             this.color = Conversion.hexToColor(lineColorMap[thema]);
             this.style = lineStyleMap[status];
 
@@ -65,6 +64,8 @@ namespace IMKL_Logic
         public override void Init()
         {
             GO = new GameObject("Line");
+            GO.tag = "DrawElement";
+
             lineRenderer = GO.AddComponent<LineRenderer>();
             lineRenderer.material = new Material(Shader.Find("Mobile/Particles/Multiply"));
             lineRenderer.startColor = color;
@@ -92,11 +93,13 @@ namespace IMKL_Logic
             OnlineMaps.instance.OnChangePosition += UpdateAbsPosition;
             OnlineMaps.instance.OnChangeZoom += UpdateRelPos;
             OnlineMaps.instance.OnChangeZoom += UpdateAbsPosition;
+
             originPos = latLonPos.First();
             CacheWorldPos();
             UpdateRelPos();
 
         }
+
         public override string ToString()
         {
             return "properties: " + string.Join(" ", Properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
@@ -115,13 +118,13 @@ namespace IMKL_Logic
             }
 
         }
-        protected override bool ClickWithinDistance(Vector3 worldMousePos,float maxDist)
+        protected override bool ClickWithinDistance(Vector3 worldMousePos, float maxDist)
         {
             //find closest point to line
             return CurrentWorldPos
-            .Pairwise((prev, curr) => Vector3.Distance(ProjectPointOnLineSegment(prev, curr, worldMousePos),worldMousePos))
+            .Pairwise((prev, curr) => Vector3.Distance(ProjectPointOnLineSegment(prev, curr, worldMousePos), worldMousePos))
             .Any(dist => dist < maxDist);
-         
+
         }
         public Vector3 prevWorldOriginPos;
         public Vector2d originPos;
@@ -229,7 +232,7 @@ namespace IMKL_Logic
 
         public override string GetTextForPropertiesPanel()
         {
-            return Thema;
+            return "Line: " + Thema;
         }
     }
 }

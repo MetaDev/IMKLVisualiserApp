@@ -4,13 +4,13 @@ using UniRx;
 using System.Collections.Generic;
 using Utility;
 using System.IO;
-
+using UniRx;
 namespace IMKL_Logic
 {
-    public class MapHelper : MonoBehaviour
+    public class MapHelper 
     {
 
-       
+
         public static void ZoomAndCenterOnElements(IEnumerable<Vector2d> MapRequestZone)
         {
 
@@ -59,7 +59,7 @@ namespace IMKL_Logic
         /// This method is called when loading the tile.
         /// </summary>
         /// <param name="tile">Reference to tile</param>
-        private void OnStartDownloadTile(OnlineMapsTile tile)
+        private static void OnStartDownloadTile(OnlineMapsTile tile)
         {
             // Get local path.
             string path = GetTilePath(tile);
@@ -98,8 +98,9 @@ namespace IMKL_Logic
         /// This method is called when tile is success downloaded.
         /// </summary>
         /// <param name="tile">Reference to tile.</param>
-        private void OnTileDownloaded(OnlineMapsTile tile)
+        private static void OnTileDownloaded(OnlineMapsTile tile)
         {
+            Debug.Log("test");
             // Get local path.
             string path = GetTilePath(tile);
 
@@ -110,14 +111,28 @@ namespace IMKL_Logic
 
             File.WriteAllBytes(path, tile.www.bytes);
         }
-
-        void Start()
-        {
-            // Subscribe to the event of success download tile.
-            OnlineMapsTile.OnTileDownloaded += OnTileDownloaded;
-
-            // Intercepts requests to the download of the tile.
-            OnlineMaps.instance.OnStartDownloadTile += OnStartDownloadTile;
+        public static void DeleteCachedMaps(){
+             File.Delete(Path.Combine(Application.persistentDataPath,
+                "OnlineMapsTileCache"));
         }
+        public static void SetCacheMap(bool cache)
+        {
+            if (cache)
+            {
+                // Subscribe to the event of success download tile.
+                OnlineMapsTile.OnTileDownloaded += OnTileDownloaded;
+
+                // Intercepts requests to the download of the tile.
+                OnlineMaps.instance.OnStartDownloadTile += OnStartDownloadTile;
+                OnlineMaps.instance.Redraw();
+            }else{
+                 // Subscribe to the event of success download tile.
+                OnlineMapsTile.OnTileDownloaded -= OnTileDownloaded;
+
+                // Intercepts requests to the download of the tile.
+                OnlineMaps.instance.OnStartDownloadTile += OnStartDownloadTile;
+            }
+        }
+        
     }
 }

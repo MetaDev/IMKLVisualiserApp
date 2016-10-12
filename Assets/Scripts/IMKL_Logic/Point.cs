@@ -88,7 +88,7 @@ namespace IMKL_Logic
         }
         protected override bool ClickWithinDistance(Vector3 mouseWorldPos, float maxDist)
         {
-            if (GO != null)
+            if (GO == null)
             {
                 return false;
             }
@@ -97,35 +97,40 @@ namespace IMKL_Logic
         //draw is a seperate method because the creation of a point and it's actual drawing should be done on a seperate thread
         public override void Init()
         {
-            OnlineMapsControlBase3D control = OnlineMaps.instance.GetComponent<OnlineMapsControlBase3D>();
-            GameObject prefab = null;
             try
             {
-                prefab = GetIconPrefab(Thema, PointType, Status);
+                GO = GameObject.Instantiate(GetIconPrefab(Thema, PointType, Status));
 
             }
             catch (KeyNotFoundException e)
             {
                 Debug.Log("The initiated point is missing some properties.");
             }
+            GO.tag="DrawElement";
 
+            OnlineMaps.instance.OnChangePosition += UpdateAbsPosition;
+            OnlineMaps.instance.OnChangeZoom += UpdateSize;
+            OnlineMaps.instance.OnChangeZoom += UpdateAbsPosition;
 
-            if (control == null)
-            {
-                Debug.LogError("You must use the 3D control (Texture or Tileset).");
-                return;
-            }
-            // Create 3D marker, x lon y lat
-            //the game object is a child of map in the scene
-            var marker3D = control.AddMarker3D(latlon, prefab);
-            marker3D.scale = scale;
-            marker3D.range = DrawElement.DrawRange;
-            GO = marker3D.instance;
         }
+        static float Size = 1;
+        void UpdateSize()
+        {
+            GO.transform.localScale = Vector3.one * (float)OnlineMaps.instance.zoom;
+        }
+        void UpdateAbsPosition()
+        {
+            if (GO != null && OnlineMapsTileSetControl.instance != null)
+            {
+                //the point should be drawn above the lines (z=0)
+                GO.transform.position = OnlineMapsTileSetControl.instance.GetWorldPosition(latlon.x, latlon.y)+Vector3.forward;
+            }
+        }
+
 
         public override string GetTextForPropertiesPanel()
         {
-            return Thema;
+            return "Point: " + Thema;
         }
     }
 

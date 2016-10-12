@@ -46,11 +46,17 @@ public class DrawElementPanel : MonoBehaviour
         DrawElementsSelected.ClearItemUIs();
         Observable.Zip(elements.Select(elt => elt.OnClickPropertiesObservable()))
         .Select(elts => elts.Where(elt => elt != null))
-        .Where(elts => elts.Count() > 0).Subscribe(DrawElements =>
+        .Subscribe(DrawElements =>
           {
-            //the observable returns the elements properties if the element has been clicked and null otherwise
-            DrawElementsSelected.AddItems(DrawElements
-        .Select(elts => Tuple.Create(elts.GetTextForPropertiesPanel(), (object)elts.Properties)));
+              if (DrawElements.Count() > 0)
+              {
+                  DrawElementsSelected.ClearItemUIs();
+                  //the observable returns the elements properties if the element has been clicked and null otherwise
+                  DrawElementsSelected.AddItems(DrawElements
+              .Select(elts => Tuple.Create(elts.GetTextForPropertiesPanel(), (object)elts.Properties)));
+              }
+
+
           });
     }
 }

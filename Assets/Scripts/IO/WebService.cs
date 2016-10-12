@@ -38,14 +38,33 @@ namespace IO
         {
             return new Uri(new Uri(baseUri), relativeOrAbsoluteUri);
         }
-        static string _clientId = "1030";
-        static string _clientSecret = "+csxuC35huCwJokbdJBTWu9hrO0nX5G3";
+
+        public static bool BetaWebservice = true;
+        static string ClientID
+        {
+            get
+            {
+                return BetaWebservice ? "1030" : "770";
+            }
+        }
+        static string ClientSecret
+        {
+            get
+            {
+                return BetaWebservice ? "+csxuC35huCwJokbdJBTWu9hrO0nX5G3" :
+                                             "X5ikaUcsgD8KyebJrieHeG2XAMflB5/6";
+            }
+        }
         static string _redirectUri = "https://vianova.com";
 
-
-
-
-        static string allMapRequestAPIURL = "https://klip.beta.agiv.be/api/ws/klip/v1/MapRequest/Mri";
+        static string allMapRequestAPIURL
+        {
+            get
+            {
+                return BetaWebservice ? "https://klip.beta.agiv.be/api/ws/klip/v1/MapRequest/Mri" :
+                                            "https://klip.agiv.be/api/ws/klip/v1/MapRequest/Mri";
+            }
+        }
         public static IObservable<UnityWebRequest> LoginWithAuthCode(string authCode)
         {
             return LoadAccesTokenFromAuthCode(authCode);
@@ -137,7 +156,9 @@ namespace IO
                                 try
                                 {
                                     return IMKLExtractor.ExtractIMKLXML(webrequest.downloadHandler.data).ToList();
-                                }catch(Exception e) {
+                                }
+                                catch (Exception e)
+                                {
                                     Observable.Throw<List<string>>(e);
                                     return null;
                                 }
@@ -162,8 +183,8 @@ namespace IO
         static IObservable<UnityWebRequest> LoadAccesTokenFromRefreshToken(string refreshToken)
         {
             WWWForm form = new WWWForm();
-            form.AddField("client_id", _clientId);
-            form.AddField("client_secret", _clientSecret);
+            form.AddField("client_id", ClientID);
+            form.AddField("client_secret", ClientSecret);
             form.AddField("grant_type", "refresh_token");
             form.AddField("refresh_token", refreshToken);
 
@@ -190,9 +211,9 @@ namespace IO
         static IObservable<UnityWebRequest> LoadAccesTokenFromAuthCode(string code_authorization)
         {
             WWWForm form = new WWWForm();
-            form.AddField("client_id", _clientId);
+            form.AddField("client_id", ClientID);
             form.AddField("redirect_uri", _redirectUri);
-            form.AddField("client_secret", _clientSecret);
+            form.AddField("client_secret", ClientSecret);
             form.AddField("grant_type", "authorization_code");
             form.AddField("code", code_authorization);
 

@@ -18,15 +18,21 @@ public class MultiSelectItem : MonoBehaviour
     Toggle toggle;
     bool Interactable;
     ToggleGroup Group;
-    public void Init(string label, object content,bool interactable=true,ToggleGroup group=null)
+    public void Init(string label, object content, bool interactable = true, ToggleGroup group = null)
     {
         base.transform.FindChild("Label").GetComponent<Text>().text = label;
         this.label = label;
         this.content = content;
-        this.Interactable=interactable;
-        this.Group=group;
+        this.Interactable = interactable;
+        this.Group = group;
     }
-   
+    public void Destroy()
+    {
+        if (this!=null &&this.gameObject != null)
+        {
+            Destroy(gameObject);
+        }
+    }
     public bool IsSelected()
     {
         return toggle.isOn;
@@ -34,10 +40,11 @@ public class MultiSelectItem : MonoBehaviour
     void Start()
     {
         toggle = GetComponent<Toggle>();
-        
+
         toggle.interactable = Interactable;
-        if (Group!=null){
-            toggle.group=Group;
+        if (Group != null)
+        {
+            toggle.group = Group;
         }
 
     }

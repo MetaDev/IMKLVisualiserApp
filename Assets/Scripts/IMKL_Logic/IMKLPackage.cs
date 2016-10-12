@@ -60,7 +60,8 @@ namespace IMKL_Logic
             }
             catch (XmlException e)
             {
-                GUIFactory.instance.MyModalWindow.Show("Something whent wrong when parsing xml from stored: " + e.Message, true);
+                GUIFactory.instance.MyModalWindow.Show("Something whent wrong when parsing xml from stored: " + e.Message, 
+                        ModalWindow.ModalType.OK);
                 Debug.Log("Something whent wrong when parsing xml from stored: " + e.Message);
                 return null;
             }
