@@ -80,7 +80,7 @@ namespace IMKL_Logic
             {
                 this.Status = status.EndsWith("available") ? MapRequestStatus.AVAILABLE : MapRequestStatus.NONAVAILABLE;
             }
-            this.MapRequestZone = mapRequestZone;
+            this.MapRequestZone = mapRequestZone.Select(reqPos=>GEO.LambertToLatLong(reqPos));
         }
 
     }

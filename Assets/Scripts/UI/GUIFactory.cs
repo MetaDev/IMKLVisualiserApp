@@ -22,7 +22,7 @@ public class GUIFactory : MonoBehaviour
         public GameObject Panel;
     }
     public Button FooterURLButton;
-    public SideMenuRight right;
+    public DrawElementPanel ElementPanel;
     public MenuTabAndPanel[] MenuTabAndPanels;
     public MultiSelectPanel OnlinePackagesPanel;
     public MultiSelectPanel LocalPackagesPanel;
@@ -49,14 +49,18 @@ public class GUIFactory : MonoBehaviour
               return OnlinePackagesPanel.OnSelectedItemsAsObservable();
           }).Subscribe(items =>
           {
+              int i=0;
               MyModalWindow.Show("Please wait while downloading selected package data", false);
-              //   List<IObservable<Tuple<IMKLPackage,List<XDocument>>>> packagesObs = new List<IObservable<Tuple<IMKLPackage,List<XDocument>>>>();
               items.Select(item => item.content).Cast<IMKLPackage>()
-                            .Select(package => WebService.DownloadXMLForIMKLPackage(package)
-                            .Select(xmls => Tuple.Create(package, xmls)))
-                            .Merge().ToList()
+                            .Select(package => WebService.DownloadXMLForIMKLPackage(package).Select(xmls => Tuple.Create(package, xmls)))
+                            .Merge()
+                            .Do(_=>{  
+                                i++;
+                                MyModalWindow.Show("Please wait while downloading selected package data.\n"+ 
+                                "Currently downloading package "+i +" out of "+ items.Count(), false);})
+                            .ToList()
                             .DoOnError(error => MyModalWindow.Show(error.Message, true))
-                            .DoOnCompleted(() => MyModalWindow.Close())
+                            .DoOnCompleted(() => {MyModalWindow.Close();ClickTab(1);})
                             .Subscribe(packagesAndXmls =>
                             {
                                 //save xml docs in package instance
@@ -83,7 +87,10 @@ public class GUIFactory : MonoBehaviour
         .Subscribe(
             items =>
             {
-                Observable.FromCoroutine(() => DrawPackages(items.Select(item => item.content).Cast<IMKLPackage>()))
+                var progressNotifier = new ScheduledNotifier<float>();
+                progressNotifier.Subscribe(prog=>MyModalWindow.Show(
+                    "Please wait while elements from the package are being drawn.\n "+ prog.ToString("0%"),false));
+                Observable.FromCoroutine(() => DrawPackages(items.Select(item => item.content).Cast<IMKLPackage>(),progressNotifier))
                 .DoOnError(error => MyModalWindow.Show(error.Message, true))
                 .DoOnCompleted(() => MyModalWindow.Close()).Subscribe();
             });
@@ -133,7 +140,7 @@ public class GUIFactory : MonoBehaviour
 
 
     //TODO Add progressbar
-    IEnumerator DrawPackages(IEnumerable<IMKLPackage> packages)
+    IEnumerator DrawPackages(IEnumerable<IMKLPackage> packages,IProgress<float> progressNotifier)
     {
         if (packages != null)
         {
@@ -151,12 +158,13 @@ public class GUIFactory : MonoBehaviour
                     //draw X elements per frame
                     if (i % 5 == 0)
                     {
+                        progressNotifier.Report((float)i/drawElements.Count());
                         yield return null;
                     }
                     i++;
                 }
             }
-            right.ElementPanel.SubscribeToDrawnElements(elements);
+            ElementPanel.SubscribeToDrawnElements(elements);
             
         }
         else

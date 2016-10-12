@@ -1,22 +1,7 @@
 todo
 
-ask chris UI ok
 
-update ui for modal window as well
-
-ask chris new code
-
-faster drawing of elements(add as variable to config amount of drawelemets to be made), 
-progressbar when drawing elements, progressbar on download of multiple packages
-turn of interatcion with map while loading
-
-properly resize map to canvas size
-
-
-in extra settings
-be able to jump to where package is drawn, switch beta/production (webservice), click sensitivity
-
-test IOS/win
+update ui for modal window 
 
 scale lines on soft zoom
 draw markers similar to lines such that they can be drawn over the lines
@@ -27,20 +12,33 @@ OnlineMaps.zoom
 OnlineMapsControlBase.ZoomOnPoint
 OnlineMapsMarkerBase.constructor
 
-add if in editor tags for debug logs and send other logs with mail if not in editor
-
 destroy draw and ui elements if no longer used
 
-increase resolution 
-You can increase the text size stylize map using snazzymaps or mapbox.
-Read sections «Styled Google Maps» and «Using Mapbox» in the documentation.
-
 yes no modal window for clearpackages
+
+cache tiles of requested package->add settings option
+
+in extra settings
+be able to jump to where package is drawn (in right menu), switch beta/production (webservice)
+
+test IOS/win
+ask chris UI ok
+
+
+---------------------
+
 
 rewrite drawpackages in GUIFactory with observables
 
 refactor GUIFactory more hierarchically
 
+properly resize map to canvas size-> the map should be fit to the screen while respecting aspect ratio
+
+increase resolution 
+You can increase the text size stylize map using snazzymaps or mapbox.
+Read sections «Styled Google Maps» and «Using Mapbox» in the documentation.
+
+add if in editor tags for debug logs and send other logs with mail if not in editor
 
 documentation!!
 

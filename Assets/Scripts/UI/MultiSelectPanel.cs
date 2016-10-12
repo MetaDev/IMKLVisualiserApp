@@ -14,7 +14,6 @@ public class MultiSelectPanel : MonoBehaviour
     public RectTransform contentView{
         get {return transform.Find("Scroll View").GetComponent<ScrollRect>().content;}
     }
-    public MultiSelectItem ItemUI;
 
 
     public IObservable<IEnumerable<MultiSelectItem>> OnSelectedItemsAsObservable()
@@ -23,7 +22,7 @@ public class MultiSelectPanel : MonoBehaviour
     }
     MultiSelectItem _InitItemUI()
     {
-        var go = GameObject.Instantiate(ItemUI.gameObject);
+        var go = Instantiate(Resources.Load("GUI/MultiSelectItemPrefab")) as GameObject;
         go.SetActive(true);
         var itemUI = go.GetComponent<MultiSelectItem>();
         itemUI.transform.SetParent(contentView, false);
