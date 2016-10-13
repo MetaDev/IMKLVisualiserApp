@@ -107,7 +107,7 @@ public class GUIFactory : MonoBehaviour
         //Singleton
         instance = this;
         //zoom and center map on flanders
-        MapHelper.ZoomAndCenter(new Vector2(4.2159f, 51.0236f), 9);
+        MapHelper.ZoomAndCenter(new Vector2(4.2159f, 51.0236f), 10);
         //Draw Panel
         InitDrawPanel();
         //refresh of load packet information
