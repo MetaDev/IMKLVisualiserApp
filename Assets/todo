@@ -2,7 +2,7 @@ todo
 
 download map per package->with progressbar
 
-bigger buttons
+when showing model turn off other input
 
 local packages-> 
     mutliselect for map download, 
@@ -15,14 +15,25 @@ online packages->
 draw elements panel->
     click instead of multiselect
 
+bigger buttons
+
+long press for item selection
+
 in extra settings
 be able to jump to where package is drawn (bottom right menu)
 
 test android/win/osx
 ask chris UI ok
+show chris some zip packages give faults, some packages have incorrect request area (bug?) check their lambert coordinates
+and the conversion I make
 
 
 ---------------------
+
+refactor the gui of packages, make a single panel with color codes for downloaded packages, downloaded map, 
+bad zip, bad map request-> its interaction: when clicking a package it is selected (first for download) 
+when its downloaded a long press will open a panel with "more info" "draw" "delete", multiselect is also possible with short press
+with same interactions for multiple packages except draw.  
 
 deeper zoom allowed / smooth zoom for map and it's elements
 OnlineMaps.zoom

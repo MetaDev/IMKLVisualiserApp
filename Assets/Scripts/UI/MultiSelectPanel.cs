@@ -8,7 +8,7 @@ public class MultiSelectPanel : MonoBehaviour
 {
     private List<MultiSelectItem> itemUIs = new List<MultiSelectItem>();
     // Use this for initialization
-    public Button ok;
+    public Button[] confirm;
     public ToggleGroup Group;
     public ScrollRect Scroll;
 
@@ -18,11 +18,11 @@ public class MultiSelectPanel : MonoBehaviour
     }
 
 
-    public IObservable<IEnumerable<MultiSelectItem>> OnSelectedItemsAsObservable()
+    public IObservable<IEnumerable<MultiSelectItem>> OnSelectedItemsAsObservable(int buttonIndex)
     {
-        if (ok != null)
+        if (confirm[buttonIndex] != null)
         {
-            return ok.OnClickAsObservable().Select(_ => itemUIs.Where(i => i.IsSelected()));
+            return confirm[buttonIndex].OnClickAsObservable().Select(_ => itemUIs.Where(i => i.IsSelected()));
         }else{
             throw new MissingComponentException("Not possible to observe multiselect panel selected items without OK button.");
         }

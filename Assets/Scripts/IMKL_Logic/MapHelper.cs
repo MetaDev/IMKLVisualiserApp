@@ -7,7 +7,7 @@ using System.IO;
 using UniRx;
 using System.Text.RegularExpressions;
 using UnityEngine.Networking;
-
+using MoreLinq;
 namespace IMKL_Logic
 {
     public class Tile
@@ -44,12 +44,15 @@ namespace IMKL_Logic
             return Tuple.Create(min, max);
         }
 
-        public static void ZoomAndCenterOnElements(IEnumerable<Vector2d> MapRequestZone)
+        public static void ZoomAndCenterOnElements(IEnumerable<Vector2d> MapRequestZone, IEnumerable<DrawElement> elements)
         {
-            var rect = GetEnclosingRectOfMapRequestZone(MapRequestZone);
+            var points = MapRequestZone;
+            var rect = GetEnclosingRectOfMapRequestZone(points);
             var min = rect.Item1;
             var max = rect.Item2;
             var absCenter = (max + min) / 2;
+            Debug.Log(max + " " + min);
+
             //turn off gps and relocate map vies
             ZoomAndCenter(absCenter, 17);
 
@@ -90,7 +93,7 @@ namespace IMKL_Logic
         public static void DeleteCachedMaps()
         {
             Directory.Delete(Path.Combine(Application.persistentDataPath,
-               "OnlineMapsTileCache"),true);
+               "OnlineMapsTileCache"), true);
         }
         static string GetMapProviderPattern()
         {
@@ -134,19 +137,22 @@ namespace IMKL_Logic
                 });
             return Regex.Replace(pattern, @"{rnd(\d+)-(\d+)}", match => match.Groups[1].Value);
         }
-        public static void DownloadTilesForPackage(IMKLPackage package, int minZoom = 15, int maxZoom = 20)
+        public static IObservable<Unit> DownloadTilesForPackage(IMKLPackage package, IProgress<float> progressNotifier,
+                                                                                    int minZoom = 15, int maxZoom = 20)
         {
             OnlineMaps map = OnlineMaps.instance;
             var rect = GetEnclosingRectOfMapRequestZone(package.MapRequestZone);
-            var bottomRightCoordinates = rect.Item2;
             var topLeftCoordinates = rect.Item1;
+            var bottomRightCoordinates = rect.Item2;
 
             int iMin = Mathf.RoundToInt(minZoom);
             int iMax = Mathf.RoundToInt(maxZoom);
             var tiles = new List<Tile>();
-
+            Debug.Log("brak");
             for (int zoom = iMin; zoom <= iMax; zoom++)
             {
+                Debug.Log(topLeftCoordinates);
+                Debug.Log(bottomRightCoordinates);
                 double tlx, tly, brx, bry;
                 map.projection.CoordinatesToTile(topLeftCoordinates.x, topLeftCoordinates.y, zoom, out tlx, out tly);
                 map.projection.CoordinatesToTile(bottomRightCoordinates.x, bottomRightCoordinates.y, zoom, out brx, out bry);
@@ -154,7 +160,7 @@ namespace IMKL_Logic
                 int maxX = 1 << zoom;
 
                 if (brx < tlx) brx += maxX;
-
+                Debug.Log(tlx+ " "+brx);
                 for (int x = (int)tlx; x < (int)brx; x++)
                 {
                     int cx = x;
@@ -165,24 +171,29 @@ namespace IMKL_Logic
                         Tile tile = new Tile(cx, y, zoom);
 
                         string tilePath = GetTilePath(tile);
+                        Debug.Log(File.Exists(tilePath));
                         if (!File.Exists(tilePath)) tiles.Add(tile);
                     }
                 }
             }
             var pattern = GetMapProviderPattern();
+            List<IObservable<Unit>> list = new List<IObservable<Unit>>();
             foreach (Tile tile in tiles)
             {
                 string url = Regex.Replace(pattern, @"{\w+}", tile.CustomProviderReplaceToken);
-                UniRXExtensions.GetWWW(UnityWebRequest.Get(url)).Subscribe(webrequest =>
+                list.Add(UniRXExtensions.GetWWW(UnityWebRequest.Get(url)).Select((webrequest, idx) =>
                 {
                     string path = GetTilePath(tile);
                     FileInfo fileInfo = new FileInfo(path);
                     DirectoryInfo directory = fileInfo.Directory;
                     if (!directory.Exists) directory.Create();
                     File.WriteAllBytes(path, webrequest.downloadHandler.data);
-                });
+                    progressNotifier.Report((float)idx / tiles.Count());
+                    return Unit.Default;
+                }));
             }
-
+            Debug.Log(tiles.Count());
+            return list.Merge();
 
         }
 

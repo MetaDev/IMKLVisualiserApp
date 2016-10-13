@@ -27,12 +27,9 @@ public class ExtraSettingsPanel : MonoBehaviour
         ClearCache.OnClickAsObservable().Subscribe(_ =>
         {
             GUIFactory.instance.MyModalWindow
-            .Show("Are you sure you want to deleted all cached maps and packages?", ModalWindow.ModalType.OKCANCEL);
-            GUIFactory.instance.MyModalWindow.GetModalButtonObservable().Where(button=>button==0)
-            .DoOnCompleted(()=>{
-                MapHelper.DeleteCachedMaps();
-                Serializer.DeleteStoredPackages();
-                }).Subscribe();
+            .Show("Are you sure you want to deleted all cached maps?", ModalWindow.ModalType.OKCANCEL);
+            GUIFactory.instance.MyModalWindow.GetModalButtonObservable().Where(button=>button==ModalWindow.ModalReturn.OK)
+            .Subscribe(__=> MapHelper.DeleteCachedMaps());
         });
         //Login
         OKLoginButton.OnClickAsObservable().Subscribe(_ => Login());

@@ -10,6 +10,9 @@ public class ModalWindow : MonoBehaviour
     {
         MESSAGE, OK, OKCANCEL
     }
+    public enum ModalReturn{
+        OK,Cancel
+    }
     public Button OK;
     public Button Cancel;
     public Text Message;
@@ -18,13 +21,13 @@ public class ModalWindow : MonoBehaviour
     {
         OK.OnClickAsObservable().Subscribe(_ => Close());
         Cancel.OnClickAsObservable().Subscribe(_ => Close());
-        var okObs = OK.OnClickAsObservable().Select(_ => 1);
-        var cancelObs = OK.OnClickAsObservable().Select(_ => 0); ;
+        var okObs = OK.OnClickAsObservable().Select(_ => ModalReturn.OK);
+        var cancelObs = Cancel.OnClickAsObservable().Select(_ => ModalReturn.Cancel); ;
         ModalButtonObservable = okObs.Merge(cancelObs);
         
     }
-    IObservable<int> ModalButtonObservable;
-    public IObservable<int> GetModalButtonObservable(){
+    IObservable<ModalReturn> ModalButtonObservable;
+    public IObservable<ModalReturn> GetModalButtonObservable(){
         //if the modal window has never been activated before, than immediately retrieving observable after show will throw a null pointer
         if (ModalButtonObservable==null){
             Start();

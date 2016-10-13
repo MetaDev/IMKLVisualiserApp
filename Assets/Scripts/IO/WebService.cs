@@ -135,14 +135,16 @@ namespace IO
                                 EditIMKLURLForZIP(url)
                                 );
                             });
-                        }).ToList();
+                        }).ToList()
+                        .DoOnError(e=> {Debug.Log(e.Message); 
+                        throw new Exception("Something went wrong when calling the API, are you online and logged in?");});
         }
 
-
+        //return MRZone in lat long
         static IEnumerable<Vector2d> ParseMRZoneFromJObj(JObject mapRequest)
         {
             return mapRequest["MapRequestZone"]["coordinates"][0].Select(coords => coords.ToObject<double[]>())
-            .Select(coord => new Vector2d(coord[0], coord[1]));
+            .Select(coord => new Vector2d(coord[0], coord[1])).Select(reqPos=>GEO.LambertToLatLong(reqPos));
 
         }
         public static IObservable<List<string>> DownloadXMLForIMKLPackage(IMKLPackage package)
@@ -153,15 +155,8 @@ namespace IO
                 return CallAPIAndLogin(package.ZIPUrl, "application/zip").Select(webrequest =>
                             {
                                 //save KLBresponse
-                                try
-                                {
-                                    return IMKLExtractor.ExtractIMKLXML(webrequest.downloadHandler.data).ToList();
-                                }
-                                catch (Exception e)
-                                {
-                                    Observable.Throw<List<string>>(e);
-                                    return null;
-                                }
+                                return IMKLExtractor.ExtractIMKLXML(webrequest.downloadHandler.data).ToList();
+
                             });
             }
             return Observable.Return<List<string>>(null);

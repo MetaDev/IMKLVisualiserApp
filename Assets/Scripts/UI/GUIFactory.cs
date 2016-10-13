@@ -46,7 +46,7 @@ public class GUIFactory : MonoBehaviour
               OnlinePackagesPanel.ClearItemUIs();
               OnlinePackagesPanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package, package.DownloadIMKL)));
               //every time ok is clicked the selected items are streamed
-              return OnlinePackagesPanel.OnSelectedItemsAsObservable();
+              return OnlinePackagesPanel.OnSelectedItemsAsObservable(0);
           }).Subscribe(items =>
           {
               int i = 0;
@@ -68,7 +68,7 @@ public class GUIFactory : MonoBehaviour
                                 //save xml docs in package instance
                                 packagesAndXmls.ForEach(pAndXs => pAndXs.Item1.KLBResponses = pAndXs.Item2);
                                 //serialise package instances
-                                Serializer.SaveIMKLPackages(packagesAndXmls.Select(pAndX => pAndX.Item1));
+                                Serializer.SaveAdditionalIMKLPackages(packagesAndXmls.Select(pAndX => pAndX.Item1));
                             });
           });
     }
@@ -81,8 +81,35 @@ public class GUIFactory : MonoBehaviour
         Serializer.LoadAllIMKLPackages();
         //refresh the draw panel on the content of the imkl packages
         Serializer.PackagesChanged().Subscribe(packages => AddDrawPackages(packages));
+        //download maps button
+        LocalPackagesPanel.OnSelectedItemsAsObservable(1)
+        .Do(_ =>MyModalWindow.Show("Please wait while maps for the package are being downloaded.", ModalWindow.ModalType.MESSAGE))
+        .Subscribe(items => items.Select(item => item.content).Cast<IMKLPackage>()
+            .ForEach(package =>
+            {
+                Debug.Log("test");
+                var progressNotifier = new ScheduledNotifier<float>();
+                progressNotifier.Subscribe(prog => MyModalWindow.Show(
+                    "Please wait while maps for the package are being downloaded.\nPackage :" + package.ID +
+                                                            "progress: " + prog.ToString("0%"), ModalWindow.ModalType.MESSAGE));
+                MapHelper.DownloadTilesForPackage(package, progressNotifier).Subscribe();
+            }));
+        //delete package button
+        LocalPackagesPanel.OnSelectedItemsAsObservable(2).Subscribe(items =>
+        {
+            GUIFactory.instance.MyModalWindow
+            .Show("Are you sure you want to deleted "+ items.Count() +" packages?", ModalWindow.ModalType.OKCANCEL);
+            GUIFactory.instance.MyModalWindow.GetModalButtonObservable().Where(button=>button==ModalWindow.ModalReturn.OK)
+            .ObserveOn(Scheduler.ThreadPool).Subscribe(_ =>
+                Serializer.DeletePackages(items.Select(item => item.content).Cast<IMKLPackage>()));
+        });
+        
+        
 
-        LocalPackagesPanel.OnSelectedItemsAsObservable()
+        //draw button
+        LocalPackagesPanel.OnSelectedItemsAsObservable(0).Where(items => items.Count() > 1)
+        .Subscribe(_ => MyModalWindow.Show("Only one package at a time can be drawn.", ModalWindow.ModalType.OK));
+        LocalPackagesPanel.OnSelectedItemsAsObservable(0).Where(items => items.Count() == 1)
         .Do(_ =>
         {
             MyModalWindow.Show("Please wait while elements from the package are being drawn.", ModalWindow.ModalType.MESSAGE);
@@ -104,7 +131,7 @@ public class GUIFactory : MonoBehaviour
                 var progressNotifier = new ScheduledNotifier<float>();
                 progressNotifier.Subscribe(prog => MyModalWindow.Show(
                     "Please wait while elements from the package are being drawn.\n " + prog.ToString("0%"), ModalWindow.ModalType.MESSAGE));
-                Observable.FromCoroutine(() => DrawPackages(items.Select(item => item.content).Cast<IMKLPackage>(), progressNotifier))
+                Observable.FromCoroutine(() => DrawPackage(items.Select(item => item.content).Cast<IMKLPackage>().First(), progressNotifier))
                 .DoOnError(error => MyModalWindow.Show(error.Message, ModalWindow.ModalType.OK))
                 .DoOnCompleted(() => MyModalWindow.Close()).Subscribe();
             });
@@ -156,30 +183,29 @@ public class GUIFactory : MonoBehaviour
     }
 
 
-    IEnumerator DrawPackages(IEnumerable<IMKLPackage> packages, IProgress<float> progressNotifier)
+    IEnumerator DrawPackage(IMKLPackage package, IProgress<float> progressNotifier)
     {
-        if (packages != null)
+        if (package != null)
         {
             List<DrawElement> elements = new List<DrawElement>();
-            foreach (IMKLPackage package in packages)
+
+            var drawElements = IMKLParser.ParseDrawElements(package.GetKLBXML())
+                         .Where(elts => elts != null);
+            MapHelper.ZoomAndCenterOnElements(package.MapRequestZone, drawElements);
+            int i = 0;
+            elements.AddRange(drawElements);
+            foreach (DrawElement elt in drawElements)
             {
-                var drawElements = IMKLParser.ParseDrawElements(package.GetKLBXML())
-                             .Where(elts => elts != null);
-                MapHelper.ZoomAndCenterOnElements(package.MapRequestZone);
-                int i = 0;
-                elements.AddRange(drawElements);
-                foreach (DrawElement elt in drawElements)
+                elt.Init();
+                //draw X elements per frame
+                if (i % 5 == 0)
                 {
-                    elt.Init();
-                    //draw X elements per frame
-                    if (i % 5 == 0)
-                    {
-                        progressNotifier.Report((float)i / drawElements.Count());
-                        yield return null;
-                    }
-                    i++;
+                    progressNotifier.Report((float)i / drawElements.Count());
+                    yield return null;
                 }
+                i++;
             }
+
             ActiveDrawElements = elements;
             ElementPanel.SubscribeToDrawnElements(elements);
 

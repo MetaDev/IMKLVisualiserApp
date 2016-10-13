@@ -51,13 +51,23 @@ namespace IMKL_Logic
         // public Point(Pos latlon, GameOb)
 
         static IDictionary<string, GameObject> prefabIcons = new Dictionary<string, GameObject>();
-        private static GameObject GetIconPrefab(string thema, string pointType, string status)
+      
+        private static GameObject GetIconPrefab(string _thema, string pointType, string _status)
         {
-
-            //go.transform.localScale=new Vector3(10,10,1);
-            string name = (thema == "oilGasChemical" ? thema + "s" : thema).ToLowerInvariant()
+            var thema=_thema.ToLowerInvariant();
+            switch (thema)
+            {
+                case "oilgaschemical":
+                    thema = "oilgaschemicals";
+                    break;
+                case "crosstheme":
+                    thema = "cross";
+                    break;
+            }
+            var status = (_status == "functional" ? "" :"_"+ _status).ToLowerInvariant();
+            string name = thema
                  + "_" + pointType
-                 + (status == "functional" ? "" : "_" + status).ToLowerInvariant();
+                 + status;
             if (!prefabIcons.ContainsKey(name))
             {
                 GameObject go = new GameObject();
@@ -65,19 +75,18 @@ namespace IMKL_Logic
                 SpriteRenderer renderer = go.AddComponent<SpriteRenderer>();
                 go.transform.eulerAngles = new Vector3(180, 0, 0);
                 go.transform.localScale = new Vector3(100, 100, 0);
+                //far away from the camera
+                go.transform.position= new Vector3(-10000,0,0);
                 Texture2D tex = Resources.Load("icons/" + name, typeof(Texture2D)) as Texture2D;
                 //appurtenance is the default icon if not found
                 if (tex == null)
                 {
-                    var default_name = ((thema == "oilGasChemical" ? thema + "s" : thema).ToLowerInvariant()
-                + "_" + "appurtenance"
-                + (status == "functional" ? "" : "_" + status)).ToLowerInvariant();
+                    var default_name =String.Join("_", name.Split('_').Select((substring,idx)=>idx==1?"appurtenance":substring).ToArray());
                     tex = Resources.Load("icons/" + default_name, typeof(Texture2D)) as Texture2D;
-                }
-                //TODO properly handle unfound icons
-                if (tex == null)
-                {
-                    Debug.Log("icon not found");
+                    if (tex == null)
+                    {
+                        Debug.Log("icon not found: " + default_name);
+                    }
                 }
                 renderer.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
                 renderer.sortingOrder = 3;

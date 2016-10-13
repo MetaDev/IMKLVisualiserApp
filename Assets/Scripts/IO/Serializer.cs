@@ -29,17 +29,22 @@ namespace IO
             }
             return _TokenInfo;
         }
-        static string PackagesFileName =  "IMKLPackages.dat";
-        static string TokenInfoFileName =  "TokenInfo.dat";
-       public static void DeleteStoredPackages(){
-            File.Delete(Path.Combine(serialisationPath,PackagesFileName));
-            _IMKLPackages=new List<IMKLPackage>();
+        static string PackagesFileName = "IMKLPackages.dat";
+        static string TokenInfoFileName = "TokenInfo.dat";
+        public static void DeletePackages(IEnumerable<IMKLPackage> toDeletePackages)
+        {
+            var packageIDs = toDeletePackages.Select(delPackage => delPackage.ID);
+            SetPackages(_IMKLPackages.Where(package => !packageIDs.Contains(package.ID)));
         }
         static IEnumerable<IMKLPackage> _IMKLPackages = new List<IMKLPackage>();
 
-        public static void SaveIMKLPackages(IEnumerable<IMKLPackage> packages)
+        public static void SaveAdditionalIMKLPackages(IEnumerable<IMKLPackage> packages)
         {
             AddPackages(packages);
+            SerialiseObject(_IMKLPackages, PackagesFileName);
+        }
+        static void SetPackages(IEnumerable<IMKLPackage> packages){
+            _IMKLPackages =packages;
             SerialiseObject(_IMKLPackages, PackagesFileName);
         }
         public static IEnumerable<IMKLPackage> LoadAllIMKLPackages()
@@ -54,7 +59,7 @@ namespace IO
         {
             if (packages != null)
             {
-                _IMKLPackages = _IMKLPackages.Concat(packages).DistinctBy(package=>package.ID);
+                _IMKLPackages = _IMKLPackages.Concat(packages).DistinctBy(package => package.ID);
             }
         }
         public static IObservable<IEnumerable<IMKLPackage>> PackagesChanged()
