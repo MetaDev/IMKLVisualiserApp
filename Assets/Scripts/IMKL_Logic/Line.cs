@@ -64,7 +64,6 @@ namespace IMKL_Logic
         public override void Init()
         {
             GO = new GameObject("Line");
-            GO.tag = "DrawElement";
 
             lineRenderer = GO.AddComponent<LineRenderer>();
             lineRenderer.material = new Material(Shader.Find("Mobile/Particles/Multiply"));
@@ -105,19 +104,34 @@ namespace IMKL_Logic
             return "properties: " + string.Join(" ", Properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
                 + "Position" + string.Join(" ", latLonPos.Select(p => p.ToString()).ToArray());
         }
+        bool CheckBeforeUpdate()
+        {
+            if (IsDestroyed())
+            {
+                OnlineMaps.instance.OnChangePosition -= UpdateAbsPosition;
+                OnlineMaps.instance.OnChangeZoom -= UpdateRelPos;
+                OnlineMaps.instance.OnChangeZoom -= UpdateAbsPosition;
+                return false;
+            }
+            return true;
+        }
         Vector3[] CurrentWorldPos;
         void UpdateAbsPosition()
         {
-            if (originPos != null && prevWorldOriginPos != null && WorldPosAndMeshCache.ContainsKey(OnlineMaps.instance.zoom))
+            if (CheckBeforeUpdate())
             {
-                var worldOriginPos = OnlineMapsTileSetControl.instance.GetWorldPosition(originPos.x, originPos.y);
-                var delta = worldOriginPos - prevWorldOriginPos;
-                var newWorldPosInMap = WorldPosAndMeshCache[OnlineMaps.instance.zoom].Select(pos => pos + delta).ToArray();
-                CurrentWorldPos = newWorldPosInMap;
-                lineRenderer.SetPositions(newWorldPosInMap);
+                if (originPos != null && prevWorldOriginPos != null && WorldPosAndMeshCache.ContainsKey(OnlineMaps.instance.zoom))
+                {
+                    var worldOriginPos = OnlineMapsTileSetControl.instance.GetWorldPosition(originPos.x, originPos.y);
+                    var delta = worldOriginPos - prevWorldOriginPos;
+                    var newWorldPosInMap = WorldPosAndMeshCache[OnlineMaps.instance.zoom].Select(pos => pos + delta).ToArray();
+                    CurrentWorldPos = newWorldPosInMap;
+                    lineRenderer.SetPositions(newWorldPosInMap);
+                }
             }
 
         }
+
         protected override bool ClickWithinDistance(Vector3 worldMousePos, float maxDist)
         {
             //find closest point to line
@@ -145,16 +159,20 @@ namespace IMKL_Logic
         }
         void UpdateRelPos()
         {
-            if (DrawElement.DrawRange.InRange(OnlineMaps.instance.zoom))
+            if (CheckBeforeUpdate())
             {
-                //draw the line from previously cached zoom for relatively correct points
-                if (OnlineMapsTileSetControl.instance != null && WorldPosAndMeshCache.ContainsKey(OnlineMaps.instance.zoom))
+                if (DrawElement.DrawRange.InRange(OnlineMaps.instance.zoom))
                 {
-                    var worldPos = WorldPosAndMeshCache[OnlineMaps.instance.zoom];
-                    //save origins for relative draw
-                    prevWorldOriginPos = worldPos[0];
+                    //draw the line from previously cached zoom for relatively correct points
+                    if (OnlineMapsTileSetControl.instance != null && WorldPosAndMeshCache.ContainsKey(OnlineMaps.instance.zoom))
+                    {
+                        var worldPos = WorldPosAndMeshCache[OnlineMaps.instance.zoom];
+                        //save origins for relative draw
+                        prevWorldOriginPos = worldPos[0];
+                    }
                 }
             }
+
         }
         public static Vector3 ProjectPointOnLineSegment(Vector3 linePoint1, Vector3 linePoint2, Vector3 point)
         {

@@ -43,6 +43,7 @@ public class GUIFactory : MonoBehaviour
             .DoOnError(error => MyModalWindow.Show(error.Message, ModalWindow.ModalType.OK))
             .SelectMany(packages =>
           {
+              OnlinePackagesPanel.ClearItemUIs();
               OnlinePackagesPanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package, package.DownloadIMKL)));
               //every time ok is clicked the selected items are streamed
               return OnlinePackagesPanel.OnSelectedItemsAsObservable();
@@ -72,7 +73,7 @@ public class GUIFactory : MonoBehaviour
           });
     }
     public static GUIFactory instance;
-
+    List<DrawElement> ActiveDrawElements;
 
     void InitDrawPanel()
     {
@@ -80,13 +81,21 @@ public class GUIFactory : MonoBehaviour
         Serializer.LoadAllIMKLPackages();
         //refresh the draw panel on the content of the imkl packages
         Serializer.PackagesChanged().Subscribe(packages => AddDrawPackages(packages));
-        //delete previous drawing on map
-        foreach (GameObject drawElement in GameObject.FindGameObjectsWithTag("DrawElement"))
-        {
-           Destroy(drawElement);
-        }
+
         LocalPackagesPanel.OnSelectedItemsAsObservable()
-        .Do(_ => MyModalWindow.Show("Please wait while elements from the package are being drawn.", ModalWindow.ModalType.MESSAGE))
+        .Do(_ =>
+        {
+            MyModalWindow.Show("Please wait while elements from the package are being drawn.", ModalWindow.ModalType.MESSAGE);
+            //delete previous drawing on map
+            if (ActiveDrawElements != null)
+            {
+                foreach (DrawElement drawElement in ActiveDrawElements)
+                {
+                    Destroy(drawElement.GO);
+                }
+                ActiveDrawElements = null;
+            }
+        })
         //Add a small delay to show message before draing starts
         .Delay(TimeSpan.FromSeconds(0.2f))
         .Subscribe(
@@ -171,6 +180,7 @@ public class GUIFactory : MonoBehaviour
                     i++;
                 }
             }
+            ActiveDrawElements = elements;
             ElementPanel.SubscribeToDrawnElements(elements);
 
         }

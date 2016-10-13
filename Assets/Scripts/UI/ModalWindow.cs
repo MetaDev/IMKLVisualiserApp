@@ -21,9 +21,14 @@ public class ModalWindow : MonoBehaviour
         var okObs = OK.OnClickAsObservable().Select(_ => 1);
         var cancelObs = OK.OnClickAsObservable().Select(_ => 0); ;
         ModalButtonObservable = okObs.Merge(cancelObs);
+        
     }
     IObservable<int> ModalButtonObservable;
     public IObservable<int> GetModalButtonObservable(){
+        //if the modal window has never been activated before, than immediately retrieving observable after show will throw a null pointer
+        if (ModalButtonObservable==null){
+            Start();
+        }
         return ModalButtonObservable.First();
     }
 
@@ -39,7 +44,7 @@ public class ModalWindow : MonoBehaviour
             case ModalType.OKCANCEL:
                 OK.gameObject.SetActive(true);
                 Cancel.gameObject.SetActive(true);
-                return;
+                break;
             case ModalType.OK:
                 OK.gameObject.SetActive(true);
                 Cancel.gameObject.SetActive(false);

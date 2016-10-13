@@ -80,7 +80,7 @@ namespace IMKL_Logic
                     Debug.Log("icon not found");
                 }
                 renderer.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
-
+                renderer.sortingOrder = 3;
                 prefabIcons.Add(name, go);
             }
             return prefabIcons[name];
@@ -92,7 +92,7 @@ namespace IMKL_Logic
             {
                 return false;
             }
-            return Vector3.Distance(mouseWorldPos, GO.transform.position) < maxDist;
+            return Vector3.Distance(mouseWorldPos, GO.transform.position) < maxDist * 1.5f;
         }
         //draw is a seperate method because the creation of a point and it's actual drawing should be done on a seperate thread
         public override void Init()
@@ -106,7 +106,6 @@ namespace IMKL_Logic
             {
                 Debug.Log("The initiated point is missing some properties.");
             }
-            GO.tag="DrawElement";
 
             OnlineMaps.instance.OnChangePosition += UpdateAbsPosition;
             OnlineMaps.instance.OnChangeZoom += UpdateSize;
@@ -116,15 +115,33 @@ namespace IMKL_Logic
         static float Size = 1;
         void UpdateSize()
         {
-            GO.transform.localScale = Vector3.one * (float)OnlineMaps.instance.zoom;
+            if (CheckBeforeUpdate())
+            {
+                GO.transform.localScale = Vector3.one * (float)OnlineMaps.instance.zoom;
+            }
+        }
+        bool CheckBeforeUpdate()
+        {
+            if (IsDestroyed())
+            {
+                OnlineMaps.instance.OnChangePosition -= UpdateAbsPosition;
+                OnlineMaps.instance.OnChangeZoom -= UpdateSize;
+                OnlineMaps.instance.OnChangeZoom -= UpdateAbsPosition;
+                return false;
+            }
+            return true;
         }
         void UpdateAbsPosition()
         {
-            if (GO != null && OnlineMapsTileSetControl.instance != null)
+            if (CheckBeforeUpdate())
             {
-                //the point should be drawn above the lines (z=0)
-                GO.transform.position = OnlineMapsTileSetControl.instance.GetWorldPosition(latlon.x, latlon.y)+Vector3.forward;
+                if (GO != null && OnlineMapsTileSetControl.instance != null)
+                {
+                    //the point should be drawn above the lines (z=0)
+                    GO.transform.position = OnlineMapsTileSetControl.instance.GetWorldPosition(latlon.x, latlon.y) + Vector3.forward;
+                }
             }
+
         }
 
 

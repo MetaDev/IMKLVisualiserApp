@@ -16,10 +16,15 @@ namespace IMKL_Logic
                 return drawRange;
             }
         }
-        protected GameObject GO;
+        public GameObject GO{
+            protected set; get;
+        }
         public Dictionary<string, string> Properties
         {
             protected set; get;
+        }
+        protected bool IsDestroyed(){
+            return GO==null;
         }
         protected static float clickLineSensitivity = 150.0f;
         public abstract string GetTextForPropertiesPanel();

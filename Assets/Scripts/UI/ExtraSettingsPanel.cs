@@ -16,7 +16,6 @@ public class ExtraSettingsPanel : MonoBehaviour
     public InputField AuthCodeInputField;
 
     public Toggle BetaToggle;
-    public Toggle CacheMapToggle;
 
     // Use this for initialization
     void Start()
@@ -38,7 +37,6 @@ public class ExtraSettingsPanel : MonoBehaviour
         //Login
         OKLoginButton.OnClickAsObservable().Subscribe(_ => Login());
         //map cache toggle
-        CacheMapToggle.OnValueChangedAsObservable().Subscribe(isOn=>MapHelper.SetCacheMap(isOn));
         //beta
         BetaToggle.OnValueChangedAsObservable().Subscribe(isOn => WebService.BetaWebservice = isOn);
     }
@@ -47,7 +45,10 @@ public class ExtraSettingsPanel : MonoBehaviour
         var authCode = AuthCodeInputField.text;
         WebService.LoginWithAuthCode(authCode).DoOnError(error => GUIFactory.instance.MyModalWindow.Show(error.Message,
                     ModalWindow.ModalType.OK))
-            .Subscribe(webRequest => GUIFactory.instance.MyModalWindow.Show("Login succeeded", ModalWindow.ModalType.OK));
+            .Subscribe(webRequest => {
+                AuthCodeInputField.text="";
+                GUIFactory.instance.MyModalWindow.Show("Login succeeded", ModalWindow.ModalType.OK);
+                });
     }
 
 

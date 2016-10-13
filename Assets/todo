@@ -1,20 +1,26 @@
 todo
 
+download map per package->with progressbar
 
-render points over lines
+bigger buttons
 
-destroy draw and ui elements if no longer used (check during use)
+local packages-> 
+    mutliselect for map download, 
+    single click for draw or delete, 
+    color if map loaded
+
+online packages->
+    color if package already downloaded
+
+draw elements panel->
+    click instead of multiselect
 
 in extra settings
-be able to jump to where package is drawn (in right menu)
+be able to jump to where package is drawn (bottom right menu)
 
-test android/win
+test android/win/osx
 ask chris UI ok
 
-instead of multiselect for local packages make items buttons and open option on click
-->draw elements/ download 
-
-cache tiles of requested package->add settings option
 
 ---------------------
 
@@ -23,12 +29,13 @@ OnlineMaps.zoom
 OnlineMapsControlBase.ZoomOnPoint
 OnlineMapsMarkerBase.constructor
 
-
 rewrite drawpackages in GUIFactory with observables
+
+make drawelement inactive if not in view
 
 refactor GUIFactory more hierarchically
 
-properly resize map to canvas size-> the map should be fit to the screen while respecting aspect ratio
+drawelements->monobehaviour
 
 increase resolution 
 You can increase the text size stylize map using snazzymaps or mapbox.
