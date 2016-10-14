@@ -10,37 +10,38 @@ namespace IMKL_Logic
 
     public class Point : DrawElement
     {
-        public enum Properties
-        {
-            THEMA, POINTTYPE, STATUS
-        }
+
         float scale = 30;
         public Vector2d latlon
         {
             get;
             private set;
         }
-
-        Dictionary<Properties, string> properties;
+        public enum VisualisedProperties
+        {
+            THEMA, POINTTYPE, STATUS
+        }
+        public static Dictionary<VisualisedProperties, string> VisualisedPropertyMap = new Dictionary<VisualisedProperties, string>(){
+            {VisualisedProperties.THEMA,VisualisedProperties.THEMA.ToString().ToLowerInvariant()},
+            {VisualisedProperties.POINTTYPE,VisualisedProperties.POINTTYPE.ToString().ToLowerInvariant()},
+            {VisualisedProperties.STATUS,VisualisedProperties.STATUS.ToString().ToLowerInvariant()}
+        };
+        string PointType;
+        string Thema;
+        string Status;
         // Use this for initialization
-        public Point(Vector2d pos, Dictionary<Properties, string> properties)
+        public Point(Vector2d pos, string pointType, string thema, string status, List<string[]> properties) : base(properties)
         {
             //check properties
-            if (!(properties.ContainsKey(Properties.THEMA) &&
-            properties.ContainsKey(Properties.POINTTYPE) &&
-            properties.ContainsKey(Properties.STATUS)))
-            {
-                Debug.Log("Point is missing poperties.");
-                Debug.Log(string.Join(" ", properties.Select(kvp => kvp.ToString() + ":" + kvp.Value).ToArray()));
-            }
-
-            this.properties = properties;
+            PointType = pointType;
+            Thema = thema;
+            Status = status;
             this.latlon = GEO.LambertToLatLong(pos);
 
         }
         public override string ToString()
         {
-            return "properties: " + string.Join(" ", properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
+            return "properties: " + string.Join(" ", Properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
                 + "Position: " + latlon.ToString();
         }
         public Vector2d GetLatLon()
@@ -50,13 +51,23 @@ namespace IMKL_Logic
         // public Point(Pos latlon, GameOb)
 
         static IDictionary<string, GameObject> prefabIcons = new Dictionary<string, GameObject>();
-        private static GameObject GetIconPrefab(string thema, string pointType, string status)
+      
+        private static GameObject GetIconPrefab(string _thema, string pointType, string _status)
         {
-
-            //go.transform.localScale=new Vector3(10,10,1);
-            string name = (thema == "oilGasChemical" ? thema + "s" : thema).ToLowerInvariant()
+            var thema=_thema.ToLowerInvariant();
+            switch (thema)
+            {
+                case "oilgaschemical":
+                    thema = "oilgaschemicals";
+                    break;
+                case "crosstheme":
+                    thema = "cross";
+                    break;
+            }
+            var status = (_status == "functional" ? "" :"_"+ _status).ToLowerInvariant();
+            string name = thema
                  + "_" + pointType
-                 + (status == "functional" ? "" : "_" + status).ToLowerInvariant();
+                 + status;
             if (!prefabIcons.ContainsKey(name))
             {
                 GameObject go = new GameObject();
@@ -64,55 +75,89 @@ namespace IMKL_Logic
                 SpriteRenderer renderer = go.AddComponent<SpriteRenderer>();
                 go.transform.eulerAngles = new Vector3(180, 0, 0);
                 go.transform.localScale = new Vector3(100, 100, 0);
+                //far away from the camera
+                go.transform.position= new Vector3(-10000,0,0);
                 Texture2D tex = Resources.Load("icons/" + name, typeof(Texture2D)) as Texture2D;
                 //appurtenance is the default icon if not found
                 if (tex == null)
                 {
-                    var default_name = ((thema == "oilGasChemical" ? thema + "s" : thema).ToLowerInvariant()
-                + "_" + "appurtenance"
-                + (status == "functional" ? "" : "_" + status)).ToLowerInvariant();
+                    var default_name =String.Join("_", name.Split('_').Select((substring,idx)=>idx==1?"appurtenance":substring).ToArray());
                     tex = Resources.Load("icons/" + default_name, typeof(Texture2D)) as Texture2D;
-                }
-                //TODO properly handle unfound icons
-                if (tex == null)
-                {
-                    Debug.Log("icon not found");
+                    if (tex == null)
+                    {
+                        Debug.Log("icon not found: " + default_name);
+                    }
                 }
                 renderer.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
-
+                renderer.sortingOrder = 3;
                 prefabIcons.Add(name, go);
             }
             return prefabIcons[name];
 
         }
+        protected override bool ClickWithinDistance(Vector3 mouseWorldPos, float maxDist)
+        {
+            if (GO == null)
+            {
+                return false;
+            }
+            return Vector3.Distance(mouseWorldPos, GO.transform.position) < maxDist * 1.5f;
+        }
         //draw is a seperate method because the creation of a point and it's actual drawing should be done on a seperate thread
         public override void Init()
         {
-            OnlineMapsControlBase3D control = OnlineMaps.instance.GetComponent<OnlineMapsControlBase3D>();
-            GameObject prefab = null;
             try
             {
-                prefab = GetIconPrefab(properties[Properties.THEMA],
-          properties[Properties.POINTTYPE], properties[Properties.STATUS]);
+                GO = GameObject.Instantiate(GetIconPrefab(Thema, PointType, Status));
+
             }
             catch (KeyNotFoundException e)
             {
                 Debug.Log("The initiated point is missing some properties.");
             }
 
+            OnlineMaps.instance.OnChangePosition += UpdateAbsPosition;
+            OnlineMaps.instance.OnChangeZoom += UpdateSize;
+            OnlineMaps.instance.OnChangeZoom += UpdateAbsPosition;
 
-            if (control == null)
+        }
+        static float Size = 1;
+        void UpdateSize()
+        {
+            if (CheckBeforeUpdate())
             {
-                Debug.LogError("You must use the 3D control (Texture or Tileset).");
-                return;
+                GO.transform.localScale = Vector3.one * (float)OnlineMaps.instance.zoom;
             }
-            // Create 3D marker, x lon y lat
-            //the game object is a child of map in the scene
-            var marker3D = control.AddMarker3D(latlon, prefab);
-            marker3D.scale = scale;
-            marker3D.range = DrawElement.DrawRange;
+        }
+        bool CheckBeforeUpdate()
+        {
+            if (IsDestroyed())
+            {
+                OnlineMaps.instance.OnChangePosition -= UpdateAbsPosition;
+                OnlineMaps.instance.OnChangeZoom -= UpdateSize;
+                OnlineMaps.instance.OnChangeZoom -= UpdateAbsPosition;
+                return false;
+            }
+            return true;
+        }
+        void UpdateAbsPosition()
+        {
+            if (CheckBeforeUpdate())
+            {
+                if (GO != null && OnlineMapsTileSetControl.instance != null)
+                {
+                    //the point should be drawn above the lines (z=0)
+                    GO.transform.position = OnlineMapsTileSetControl.instance.GetWorldPosition(latlon.x, latlon.y) + Vector3.forward;
+                }
+            }
+
         }
 
+
+        public override string GetTextForPropertiesPanel()
+        {
+            return "Point: " + Thema;
+        }
     }
 
 }

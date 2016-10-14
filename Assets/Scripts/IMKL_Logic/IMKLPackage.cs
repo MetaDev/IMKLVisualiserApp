@@ -29,6 +29,13 @@ namespace IMKL_Logic
             get;
             private set;
         }
+        [JsonIgnore]
+        public IReactiveProperty<bool> HasAllMaps
+        {
+            get;
+            private set;
+        }
+
         public enum MapRequestStatus
         {
             AVAILABLE, NONAVAILABLE
@@ -60,7 +67,8 @@ namespace IMKL_Logic
             }
             catch (XmlException e)
             {
-                GUIFactory.instance.MyModalWindow.Show("Something whent wrong when parsing xml from stored: " + e.Message, true);
+                GUIFactory.instance.MyModalWindow.Show("Something whent wrong when parsing xml from stored: " + e.Message,
+                        ModalWindow.ModalType.OK);
                 Debug.Log("Something whent wrong when parsing xml from stored: " + e.Message);
                 return null;
             }
@@ -81,6 +89,8 @@ namespace IMKL_Logic
                 this.Status = status.EndsWith("available") ? MapRequestStatus.AVAILABLE : MapRequestStatus.NONAVAILABLE;
             }
             this.MapRequestZone = mapRequestZone;
+
+            this.HasAllMaps = new ReactiveProperty<bool>(MapHelper.GetRequiredTilesForPackage(this).Count() == 0);
         }
 
     }

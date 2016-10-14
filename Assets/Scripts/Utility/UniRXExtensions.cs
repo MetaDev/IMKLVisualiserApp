@@ -26,7 +26,6 @@ namespace UniRx
                 {
                     if (reportProgress != null)
                     {
-						Debug.Log(www.downloadProgress);
                         reportProgress.Report(www.downloadProgress);
                     }
                 }

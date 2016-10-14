@@ -3,40 +3,74 @@ using UnityEngine;
 using System.Linq;
 using UnityEngine.UI;
 using UniRx;
+using MoreLinq;
 public class MultiSelectPanel : MonoBehaviour
 {
-    private List<MultiSelectItem> items = new List<MultiSelectItem>();
+    private List<MultiSelectItem> itemUIs = new List<MultiSelectItem>();
     // Use this for initialization
-    public Button ok;
+    public Button[] Buttons;
     public ToggleGroup Group;
+    public ScrollRect Scroll;
 
-    public IObservable<IEnumerable<MultiSelectItem>> OnSelectedItemsAsObservable()
+    public RectTransform contentView
     {
-        return ok.OnClickAsObservable().Select(_ => items.Where(i => i.IsSelected()));
+        get { return Scroll.content.GetComponent<RectTransform>(); }
     }
-    public void AddItems(IEnumerable<Tuple<string, System.Object, bool>> texts)
+    public IEnumerable<object> GetSelectedItemsContent(){
+        return itemUIs.Where(i => i.IsSelected()).Select(items=>items.content);
+    }
+    public IObservable<IEnumerable<MultiSelectItem>> OnSelectedItemsAsObservable(int buttonIndex)
     {
-        var prefab = Resources.Load("GUI/MultiSelectItem") as GameObject;
+        if (Buttons[buttonIndex] != null)
+        {
+            return Buttons[buttonIndex].OnClickAsObservable().Select(_ => itemUIs.Where(i => i.IsSelected()));
+        }
+        else
+        {
+            throw new MissingComponentException("Not possible to observe multiselect panel selected items without OK button.");
+        }
+    }
+    MultiSelectItem _InitItemUI()
+    {
+        var go = Instantiate(Resources.Load("GUI/MultiSelectItemPrefab")) as GameObject;
+        go.SetActive(true);
+        var itemUI = go.GetComponent<MultiSelectItem>();
+        itemUI.transform.SetParent(contentView, false);
+        return itemUI;
+    }
+    MultiSelectItem InitItemUI(string label, object content, bool interactable=true)
+    {
+        var itemUI = _InitItemUI();
+        itemUI.Init(label, content, interactable, Group);
 
-        var content = transform.Find("Scroll View").GetComponent<ScrollRect>().content;
-        //remove items, TODO delete them
-        content.transform.DetachChildren();
-        items.Clear();
+        return itemUI;
+    }
+
+    public List<MultiSelectItem> AddItems(IEnumerable<Tuple<string, System.Object, bool>> items)
+    {
+        ClearItemUIs();
         //add new ones
         //the togglegroup has to be created in superclass because Start() cannot be overridden
-
-        items.AddRange(texts.Select((t) =>
-        {
-            var go = ((GameObject)GameObject.Instantiate(prefab));
-            var item = go.GetComponent<MultiSelectItem>();
-            item.Init(t.Item1, t.Item2, t.Item3, Group);
-            return item;
-        }));
-
-        items.ForEach((item) => item.transform.SetParent(content, false));
+        itemUIs = items.Select(item => InitItemUI(item.Item1, item.Item2, item.Item3)).ToList();
+        return itemUIs;
 
     }
+    public List<MultiSelectItem> AddItems(IEnumerable<Tuple<string, System.Object>> items)
+    {
+        ClearItemUIs();
+        //add new ones
+        //the togglegroup has to be created in superclass because Start() cannot be overridden
+        itemUIs = items.Select(item => InitItemUI(item.Item1, item.Item2, true)).ToList();
+        return itemUIs;
 
+    }
+    public void ClearItemUIs()
+    {
+        //remove items, and delete them
+        contentView.DetachChildren();
+        itemUIs.ForEach(iUI => iUI.Destroy());
+    }
+   
 
 
 }

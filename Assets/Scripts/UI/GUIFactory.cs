@@ -15,113 +15,207 @@ using Utility;
 
 public class GUIFactory : MonoBehaviour
 {
-    public CustomToggle MenuToggle;
-    public MultiSelectPanel IMKLPackageInfoPanel;
-    public MultiSelectPanel IMKLPackageDrawPanel;
+    [System.Serializable]
+    public class MenuTabAndPanel
+    {
+        public Button TabButton;
+        public GameObject Panel;
+    }
+    public Button FooterURLButton;
+    public DrawElementPanel ElementPanel;
+    public MenuTabAndPanel[] MenuTabAndPanels;
+    public MultiSelectPanel OnlinePackagesPanel;
+    public MultiSelectPanel LocalPackagesPanel;
+
+
+    public Button RefreshOnlinePackages;
 
     public ModalWindow MyModalWindow;
 
-    public GameObject FixedMenuSlidePart;
-    public Button HiddenMenuBtn;
-    public GameObject HiddenMenu;
-    public Toggle GPSToggle;
-    public InputField AuthCodeInputField;
-    public Button OKLogin;
 
 
-    public void LoadPacketInfo()
+    void LoadPacketInfo()
     {
-        MyModalWindow.Show("Please wait while downloading all available packages information", false);
+        MyModalWindow.Show("Please wait while downloading all available packages information"
+                                                                    , ModalWindow.ModalType.MESSAGE);
         WebService.GetAllIMKLPackage()
         .DoOnCompleted(() => MyModalWindow.Close())
-            .DoOnError(error => MyModalWindow.Show(error.Message, true))
+            .DoOnError(error => MyModalWindow.Show(error.Message, ModalWindow.ModalType.OK))
             .SelectMany(packages =>
           {
-              IMKLPackageInfoPanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package, package.DownloadIMKL)));
+              OnlinePackagesPanel.ClearItemUIs();
+              OnlinePackagesPanel.AddItems(packages.Select(package => Tuple.Create(package.Reference, (object)package, package.DownloadIMKL)));
               //every time ok is clicked the selected items are streamed
-              return IMKLPackageInfoPanel.OnSelectedItemsAsObservable();
+              return OnlinePackagesPanel.OnSelectedItemsAsObservable(0);
           }).Subscribe(items =>
           {
-              MyModalWindow.Show("Please wait while downloading selected package data", false);
-              //   List<IObservable<Tuple<IMKLPackage,List<XDocument>>>> packagesObs = new List<IObservable<Tuple<IMKLPackage,List<XDocument>>>>();
+              int i = 0;
+              MyModalWindow.Show("Please wait while downloading selected package data", ModalWindow.ModalType.MESSAGE);
               items.Select(item => item.content).Cast<IMKLPackage>()
-                            .Select(package => WebService.DownloadXMLForIMKLPackage(package)
-                            .Select(xmls => Tuple.Create(package, xmls)))
-                            .Merge().ToList()
-                            .DoOnError(error => MyModalWindow.Show(error.Message, true))
-                            .DoOnCompleted(() => MyModalWindow.Close())
+                            .Select(package => WebService.DownloadXMLForIMKLPackage(package).Select(xmls => Tuple.Create(package, xmls)))
+                            .Merge()
+                            .Select((_,idx) =>
+                            {
+                                MyModalWindow.Show("Please wait while downloading selected package data.\n" +
+                                "Currently downloading package " + idx + " out of " + items.Count(), ModalWindow.ModalType.MESSAGE);
+                                return _;
+                            })
+                            .ToList()
+                            .DoOnError(error => MyModalWindow.Show(error.Message, ModalWindow.ModalType.OK))
+                            .DoOnCompleted(() => { MyModalWindow.Close(); ClickTab(1); })
                             .Subscribe(packagesAndXmls =>
                             {
                                 //save xml docs in package instance
                                 packagesAndXmls.ForEach(pAndXs => pAndXs.Item1.KLBResponses = pAndXs.Item2);
                                 //serialise package instances
-                                Serializer.SaveIMKLPackages(packagesAndXmls.Select(pAndX => pAndX.Item1));
+                                Serializer.SaveAdditionalIMKLPackages(packagesAndXmls.Select(pAndX => pAndX.Item1));
                             });
           });
     }
     public static GUIFactory instance;
+    List<DrawElement> ActiveDrawElements;
 
-
-    void InitDrawPanel()
+    void InitLocalPackagePanel()
     {
         //init draw panel with saved packages
-        AddDrawPackages(Serializer.LoadAllIMKLPackages());
+        Serializer.LoadAllIMKLPackages();
         //refresh the draw panel on the content of the imkl packages
-        Serializer.PackagesChanged().Subscribe(packages => AddDrawPackages(packages));
-        //TODO delete previous drawing on map
-        IMKLPackageDrawPanel.OnSelectedItemsAsObservable()
-        .Do(_ => MyModalWindow.Show("Please wait while elements from the package are being drawn.", false))
-        //HACK wait to first show dialog box and later execute drawing
-        //.Delay(TimeSpan.FromSeconds(0.5))
+        Serializer.PackagesChanged().Subscribe(packages => AddLocalPackages(packages));
+        //download maps button
+        // LocalPackagesPanel.OnSelectedItemsAsObservable(1)
+        // .Do(_ => MyModalWindow.Show("Please wait while maps for the package are being downloaded.", ModalWindow.ModalType.MESSAGE))
+        // .Subscribe(items => items.Select(item => (IMKLPackage)item.content).Cast<IMKLPackage>()
+        //     .ForEach(package =>
+        //     {
+        //         var progressNotifier = new ScheduledNotifier<float>();
+        //         progressNotifier.Subscribe(prog => MyModalWindow.Show(
+        //             "Please wait while maps for the package are being downloaded.\nPackage :" + package.ID +
+        //                                                     "progress: " + prog.ToString("0%"), ModalWindow.ModalType.MESSAGE));
+        //         Observable.FromCoroutine(() =>MapHelper.DownloadTilesForPackage(package, progressNotifier).ToYieldInstruction())
+        //         .DoOnCompleted(() => MyModalWindow.Close())
+        //         .Subscribe();
+        //         package.HasAllMaps.Value=true;
+        //     }));
+        //delete package button
+        LocalPackagesPanel.OnSelectedItemsAsObservable(1).Subscribe(items =>
+        {
+            GUIFactory.instance.MyModalWindow
+            .Show("Are you sure you want to deleted " + items.Count() + " packages?", ModalWindow.ModalType.OKCANCEL);
+            GUIFactory.instance.MyModalWindow.GetModalButtonObservable().Where(button => button == ModalWindow.ModalReturn.OK)
+            .ObserveOn(Scheduler.ThreadPool).Subscribe(_ =>
+                Serializer.DeletePackages(items.Select(item => item.content).Cast<IMKLPackage>()));
+        });
+
+
+
+        //draw button
+        LocalPackagesPanel.OnSelectedItemsAsObservable(0).Where(items => items.Count() > 1)
+        .Subscribe(_ => MyModalWindow.Show("Only one package at a time can be drawn.", ModalWindow.ModalType.OK));
+        LocalPackagesPanel.OnSelectedItemsAsObservable(0).Where(items => items.Count() == 1)
+        .Do(_ =>
+        {
+            MyModalWindow.Show("Please wait while elements from the package are being drawn.", ModalWindow.ModalType.MESSAGE);
+            //delete previous drawing on map
+            if (ActiveDrawElements != null)
+            {
+                foreach (DrawElement drawElement in ActiveDrawElements)
+                {
+                    Destroy(drawElement.GO);
+                }
+                ActiveDrawElements = null;
+            }
+        })
+        //Add a small delay to show message before draing starts
+        .Delay(TimeSpan.FromSeconds(0.2f))
         .Subscribe(
             items =>
             {
-                Observable.FromCoroutine(() => DrawPackages(items.Select(item => item.content).Cast<IMKLPackage>()))
-                .DoOnError(error => MyModalWindow.Show(error.Message, true))
+                var progressNotifier = new ScheduledNotifier<float>();
+                progressNotifier.Subscribe(prog => MyModalWindow.Show(
+                    "Please wait while elements from the package are being drawn.\n " + prog.ToString("0%"), ModalWindow.ModalType.MESSAGE));
+                Observable.FromCoroutine(() => DrawPackage(items.Select(item => item.content).Cast<IMKLPackage>().First(), progressNotifier))
+                .DoOnError(error => MyModalWindow.Show(error.Message, ModalWindow.ModalType.OK))
                 .DoOnCompleted(() => MyModalWindow.Close()).Subscribe();
             });
     }
 
     void Start()
     {
+        
         //Singleton
         instance = this;
+        //zoom and center map on flanders
+        MapHelper.ZoomAndCenter(new Vector2(4.2159f, 51.0236f), 10);
         //Draw Panel
-        InitDrawPanel();
-        //Info Panel
-        //TODO load packet info is assigned here
-        //Login
-        //toggle
-        MenuToggle.MyToggle.OnValueChangedAsObservable().Subscribe(isOn => FixedMenuSlidePart.SetActive(isOn));
-        //HiddenMenuBtn
-        HiddenMenuBtn.OnClickAsObservable().Subscribe(_ => HiddenMenu.SetActive(true));
-        //GPS toggle
-        GPSToggle.OnValueChangedAsObservable().Subscribe(isOn => OnlineMapsLocationService.instance.updatePosition = isOn);
+        InitLocalPackagePanel();
+        //refresh of load packet information
+        RefreshOnlinePackages.OnClickAsObservable().Subscribe(_ => LoadPacketInfo());
+        //online packages panel
+        RefreshOnlinePackages.OnClickAsObservable().Subscribe(_ => LoadPacketInfo());
+
+        //Tab menu
+        Enumerable.Range(0, MenuTabAndPanels.Length)
+        .ForEach(i => MenuTabAndPanels[i].TabButton.OnClickAsObservable()
+        .Subscribe(_ => ClickTab(i)));
+        //tab menu init
+        //first tab starts open
+        ClickTab(0);
+
+        FooterURLButton.OnClickAsObservable().Subscribe(_ => Application.OpenURL("http://www.vianova-systems.be/"));
 
     }
-    void AddDrawPackages(IEnumerable<IMKLPackage> packages)
+    void ClickTab(int i)
     {
-        IMKLPackageDrawPanel.AddItems(packages.Where(package => package.KLBResponses != null)
-                    .Select(package => Tuple.Create(package.Reference, (object)package, true)));
-    }
 
-    //TODO Add loading screen 
-
-    IEnumerator DrawPackages(IEnumerable<IMKLPackage> packages)
-    {
-        if (packages != null)
+        Enumerable.Range(0, MenuTabAndPanels.Length).ForEach(j =>
         {
-            foreach (IMKLPackage package in packages)
+            MenuTabAndPanels[j].TabButton.interactable = j != i;
+            MenuTabAndPanels[j].Panel.SetActive(j == i);
+        });
+    }
+
+    void AddLocalPackages(IEnumerable<IMKLPackage> packages)
+    {
+        LocalPackagesPanel.ClearItemUIs();
+        LocalPackagesPanel.AddItems(packages.Where(package => package.KLBResponses != null)
+                    .Select(package =>
+                    {
+                        return Tuple.Create(package.Reference, (object)package);
+                    }))
+                    .Zip(packages,(itemUI,package)=>package.HasAllMaps.AsObservable()
+                    .Do(_=>Debug.Log("bazaar"+_))
+                    .Where(hasMaps=>hasMaps)
+                    .Subscribe(_=>itemUI.SetTextColor(Color.green)));
+        
+    }
+
+
+    IEnumerator DrawPackage(IMKLPackage package, IProgress<float> progressNotifier)
+    {
+        if (package != null)
+        {
+            List<DrawElement> elements = new List<DrawElement>();
+
+            var drawElements = IMKLParser.ParseDrawElements(package.GetKLBXML())
+                         .Where(elts => elts != null);
+            MapHelper.ZoomAndCenterOnElements(package.MapRequestZone, drawElements);
+            int i = 0;
+            elements.AddRange(drawElements);
+            foreach (DrawElement elt in drawElements)
             {
-                var drawElements = IMKLParser.ParseDrawElements(package.GetKLBXML())
-                             .Where(elts => elts != null);
-                MapHelper.ZoomAndCenterOnElements(drawElements);
-                foreach (DrawElement elt in drawElements)
+                elt.Init();
+                //draw X elements per frame
+                if (i % 10 == 0)
                 {
-                    elt.Init();
+                    progressNotifier.Report((float)i / drawElements.Count());
                     yield return null;
                 }
+                i++;
             }
+
+            ActiveDrawElements = elements;
+            ElementPanel.SubscribeToDrawnElements(elements);
+
         }
         else
         {
@@ -131,12 +225,7 @@ public class GUIFactory : MonoBehaviour
     }
 
 
-    public void LoginPress()
-    {
-        var authCode = AuthCodeInputField.text;
-        WebService.LoginWithAuthCode(authCode).DoOnError(error => GUIFactory.instance.MyModalWindow.Show(error.Message, true))
-            .Subscribe(webRequest => GUIFactory.instance.MyModalWindow.Show("Login succeeded", true));
-    }
+
 
 
 

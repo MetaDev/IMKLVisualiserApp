@@ -38,14 +38,33 @@ namespace IO
         {
             return new Uri(new Uri(baseUri), relativeOrAbsoluteUri);
         }
-        static string _clientId = "1030";
-        static string _clientSecret="+csxuC35huCwJokbdJBTWu9hrO0nX5G3";
+
+        public static bool BetaWebservice = true;
+        static string ClientID
+        {
+            get
+            {
+                return BetaWebservice ? "1030" : "770";
+            }
+        }
+        static string ClientSecret
+        {
+            get
+            {
+                return BetaWebservice ? "+csxuC35huCwJokbdJBTWu9hrO0nX5G3" :
+                                             "X5ikaUcsgD8KyebJrieHeG2XAMflB5/6";
+            }
+        }
         static string _redirectUri = "https://vianova.com";
-       
 
-
-
-        static string allMapRequestAPIURL = "https://klip.beta.agiv.be/api/ws/klip/v1/MapRequest/Mri";
+        static string allMapRequestAPIURL
+        {
+            get
+            {
+                return BetaWebservice ? "https://klip.beta.agiv.be/api/ws/klip/v1/MapRequest/Mri" :
+                                            "https://klip.agiv.be/api/ws/klip/v1/MapRequest/Mri";
+            }
+        }
         public static IObservable<UnityWebRequest> LoginWithAuthCode(string authCode)
         {
             return LoadAccesTokenFromAuthCode(authCode);
@@ -67,12 +86,15 @@ namespace IO
             {
                 obs = Observable.Return<UnityWebRequest>(null);
             }
-            return obs.SelectMany(request => CallAPI(APIURL,Serializer.LoadToken().accesToken, httpAcceptHeader))
+            return obs.SelectMany(request => CallAPI(APIURL, Serializer.LoadToken().accesToken, httpAcceptHeader))
             .Do(request =>
             {
                 if (request != null && request.responseCode != 200)
                 {
-                    throw new Exception("api call failed, error" + request.error + " "+request.downloadHandler.text+ ", response code "+ request.responseCode);
+
+                    Observable.Throw<UnityWebRequest>(
+                         new Exception("api call failed, error" + request.error + " " + request.downloadHandler.text +
+                         ", response code " + request.responseCode));
                 }
             });
 
@@ -113,14 +135,16 @@ namespace IO
                                 EditIMKLURLForZIP(url)
                                 );
                             });
-                        }).ToList();
+                        }).ToList()
+                        .DoOnError(e=> {Debug.Log(e.Message); 
+                        throw new Exception("Something went wrong when calling the API, are you online and logged in?");});
         }
 
-
+        //return MRZone in lat long
         static IEnumerable<Vector2d> ParseMRZoneFromJObj(JObject mapRequest)
         {
             return mapRequest["MapRequestZone"]["coordinates"][0].Select(coords => coords.ToObject<double[]>())
-            .Select(coord => new Vector2d(coord[0], coord[1]));
+            .Select(coord => new Vector2d(coord[0], coord[1])).Select(reqPos=>GEO.LambertToLatLong(reqPos));
 
         }
         public static IObservable<List<string>> DownloadXMLForIMKLPackage(IMKLPackage package)
@@ -132,6 +156,7 @@ namespace IO
                             {
                                 //save KLBresponse
                                 return IMKLExtractor.ExtractIMKLXML(webrequest.downloadHandler.data).ToList();
+
                             });
             }
             return Observable.Return<List<string>>(null);
@@ -153,8 +178,8 @@ namespace IO
         static IObservable<UnityWebRequest> LoadAccesTokenFromRefreshToken(string refreshToken)
         {
             WWWForm form = new WWWForm();
-            form.AddField("client_id",_clientId);
-            form.AddField("client_secret", _clientSecret);
+            form.AddField("client_id", ClientID);
+            form.AddField("client_secret", ClientSecret);
             form.AddField("grant_type", "refresh_token");
             form.AddField("refresh_token", refreshToken);
 
@@ -181,9 +206,9 @@ namespace IO
         static IObservable<UnityWebRequest> LoadAccesTokenFromAuthCode(string code_authorization)
         {
             WWWForm form = new WWWForm();
-            form.AddField("client_id", _clientId);
+            form.AddField("client_id", ClientID);
             form.AddField("redirect_uri", _redirectUri);
-            form.AddField("client_secret",_clientSecret);
+            form.AddField("client_secret", ClientSecret);
             form.AddField("grant_type", "authorization_code");
             form.AddField("code", code_authorization);
 
@@ -191,11 +216,14 @@ namespace IO
             UnityWebRequest www = UnityWebRequest.Post(url, form);
             return UniRXExtensions.GetWWW(www).Select((webrequest) =>
             {
-                if (www.responseCode==200){
-                        SaveAccesTokenFromBytes(webrequest.downloadHandler.data);
-                }else{
+                if (www.responseCode == 200)
+                {
+                    SaveAccesTokenFromBytes(webrequest.downloadHandler.data);
+                }
+                else
+                {
                     var message = @"Something went wrong when trying to log in with the authorization code.
-                     got error: "+ www.error + " "+ webrequest.downloadHandler.text + ", with code "+ www.responseCode;
+                     got error: " + www.error + " " + webrequest.downloadHandler.text + ", with code " + www.responseCode;
                     throw new Exception(message);
                 }
                 return webrequest;

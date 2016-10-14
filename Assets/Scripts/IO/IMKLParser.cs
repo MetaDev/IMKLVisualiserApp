@@ -55,10 +55,10 @@ namespace IO
             try
             {
                 //ToList is necessary because the lists are lazely evaluated 
-                return KLBResponses.Where(xdoc=>xdoc!=null).SelectMany(xdoc =>
-                {
-                    return ParsePoints(xdoc).Concat(ParseLines(xdoc));
-                }).ToList();
+                return KLBResponses.Where(xdoc => xdoc != null).SelectMany(xdoc =>
+                    {
+                        return ParsePoints(xdoc).Concat(ParseLines(xdoc));
+                    }).ToList();
             }
             //TODO properly catch xml parse exceptions
             catch (Exception e)
@@ -86,16 +86,16 @@ namespace IO
                              pos = StringParser.parsePos(point.DescendantsByLocalName("pos").Single().Value),
                              thema = network.DescendantsByLocalName("utilityNetworkType").Single().AttributeByLocalName("href")
                                                                         .Value.Split('/').Last(),
-                             status = point.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last()
-
+                             status = point.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last(),
+                             //Add additional desired properties as variables
+                             elt=point
                          };
             return points.Select(point => (DrawElement)new Point(point.pos,
-                        new Dictionary<Point.Properties, string>(){
-                            {Point.Properties.THEMA,point.thema},
-                            {Point.Properties.POINTTYPE,point.pointType},
-                            {Point.Properties.STATUS,point.status}
-                        })
-                        );
+                           point.pointType, point.thema, point.status,TempPropertyGetter.VNS_SetProperties(point.elt)));
+        }
+        static Dictionary<string,string> ClassToDict(object a){
+            return a.GetType().GetProperties().ToDictionary(x => x.Name, x => x.GetValue(a, null).ToString());
+
         }
         public static string GetKLBResponseID(XDocument KLBResponse)
         {
@@ -119,16 +119,13 @@ namespace IO
                             posList = StringParser.parsePosList(link.DescendantsByLocalName("posList").Single().Value),
                             thema = network.DescendantsByLocalName("utilityNetworkType").Single().AttributeByLocalName("href")
                                                                         .Value.Split('/').Last().ToLowerInvariant(),
-                            status = line.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last()
-
+                            status = line.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last(),
+                            elt=line
                         };
 
 
             return lines.Select(line => (DrawElement)new Line(line.posList,
-                            new Dictionary<Line.Properties, string>(){
-                                        {Line.Properties.THEMA,line.thema},
-                                        {Line.Properties.STATUS,line.status}
-                            }
+                                        line.thema,line.status, TempPropertyGetter.VNS_SetProperties(line.elt)
                             ));
         }
 

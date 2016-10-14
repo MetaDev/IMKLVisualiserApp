@@ -1,28 +1,58 @@
 todo
 
+download map per package, still a bug, the Onlinemap doesn't properly visualise the textures without wifi
 
-put all gui in code->change menupanel to extra settings window/panel & add gps on/off & config for shown imkl info
+bug in local packages, the color of the text doesn't change on the observables
 
+when showing model turn off other input
 
-click on line and marker shows properties
+local packages-> 
+    mutliselect for map download, 
+    single click for draw or delete, 
+    color if map loaded
 
-map center and zoom based on package request area and not points
+online packages->
+    color if package already downloaded
 
-test IOS 
+draw elements panel->
+    click instead of multiselect
 
-scale lines on zoom
-draw markers similar to lines such that they can be drawn over the lines
+bigger buttons
 
-test on android/ios/win
+long press for item selection
 
+in extra settings
+be able to jump to where package is drawn (bottom right menu)
 
-add if in editor tags for debug logs and send other logs with mail if not in editor
+test android/win/osx
 
-destroy draw and ui elements if no longer used
+some zip packages give faults
+
+---------------------
+
+refactor the gui of packages, make a single panel with color codes for downloaded packages, downloaded map, 
+bad zip, bad map request-> its interaction: when clicking a package it is selected (first for download) 
+when its downloaded a long press will open a panel with "more info" "draw" "delete", multiselect is also possible with short press
+with same interactions for multiple packages except draw.  
+
+deeper zoom allowed / smooth zoom for map and it's elements
+OnlineMaps.zoom
+OnlineMapsControlBase.ZoomOnPoint
+OnlineMapsMarkerBase.constructor
+
+rewrite drawpackages in GUIFactory with observables
+
+make drawelement inactive if not in view
+
+refactor GUIFactory more hierarchically
+
+drawelements->monobehaviour
 
 increase resolution 
 You can increase the text size stylize map using snazzymaps or mapbox.
 Read sections «Styled Google Maps» and «Using Mapbox» in the documentation.
+
+add if in editor tags for debug logs and send other logs with mail if not in editor
 
 documentation!!
 

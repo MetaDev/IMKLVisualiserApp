@@ -7,9 +7,8 @@ public class CustomToggle : MonoBehaviour
 {
 
     public Toggle MyToggle;
-    public Image Icon;
-    public Sprite SelectedSprite;
-    public Sprite UnSelectedSprite;
+    public Image SelectedImage;
+    public Image UnSelectedImage;
 
 
     // Use this for initialization
@@ -18,15 +17,9 @@ public class CustomToggle : MonoBehaviour
         MyToggle.toggleTransition = Toggle.ToggleTransition.None;
         MyToggle.OnValueChangedAsObservable().Subscribe(isOn =>
         {
-            Image targetImage = MyToggle.targetGraphic as Image;
-            if (targetImage != null)
-            {
-				if(isOn){
-					Icon.sprite = SelectedSprite;
-				}else{
-					Icon.sprite = UnSelectedSprite;
-				}
-            }
+            SelectedImage.gameObject.SetActive(isOn);
+            UnSelectedImage.gameObject.SetActive(!isOn);
+
         });
     }
 }
