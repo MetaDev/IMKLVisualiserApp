@@ -26,9 +26,10 @@ public class DrawElementPanel : MonoBehaviour
         //Show selected drawn elements stuff
         DrawElementsSelected.OnSelectedItemsAsObservable(0).Subscribe(items =>
        {
-           var properties = (Dictionary<string, string>)items.First().content;
-           DrawElementPropertiesText.text = string.Join("\n", properties.ToList()
-           .Select(pair => pair.Key + ": " + pair.Value).ToArray());
+           Debug.Log(items.First().content);
+           var properties = (List<string[]>)items.First().content;
+           Debug.Log(properties);
+           DrawElementPropertiesText.text = string.Join("\n", properties.Select(pair=>pair[0]+": "+pair[1]).ToArray());
            DrawElementProperties.SetActive(true);
            DrawElementsSelected.gameObject.SetActive(false);
        });

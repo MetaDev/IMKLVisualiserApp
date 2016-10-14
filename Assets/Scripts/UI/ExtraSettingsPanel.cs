@@ -23,7 +23,7 @@ public class ExtraSettingsPanel : MonoBehaviour
         //extra settings
         //GPS toggle
         GPSToggle.OnValueChangedAsObservable().Subscribe(isOn => OnlineMapsLocationService.instance.updatePosition = isOn);
-        //clear packages
+        //clear maps
         ClearCache.OnClickAsObservable().Subscribe(_ =>
         {
             GUIFactory.instance.MyModalWindow

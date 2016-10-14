@@ -4,38 +4,53 @@ using UniRx;
 using System.Collections.Generic;
 using Utility;
 using System.IO;
-using UniRx;
 using System.Text.RegularExpressions;
 using UnityEngine.Networking;
 using MoreLinq;
+
 namespace IMKL_Logic
 {
-    public class Tile
+    public class MapHelper : MonoBehaviour
     {
-        public int x;
-        public int y;
-        public int zoom;
-
-        public Tile(int x, int y, int zoom)
+        void Start()
         {
-            this.x = x;
-            this.y = y;
-            this.zoom = zoom;
+            //override the tile download process
+            OnlineMaps.instance.OnStartDownloadTile += OnStartDownloadTile;
+            MapPath = Path.Combine(Application.persistentDataPath, "OnlineMapsTiles");
         }
-        public string CustomProviderReplaceToken(Match match)
+        static void OnStartDownloadTile(OnlineMapsTile tile)
         {
-            string v = match.Value.ToLower().Trim('{', '}');
-            if (v == "zoom") return zoom.ToString();
-            if (v == "x") return x.ToString();
-            if (v == "y") return y.ToString();
-            if (v == "quad") return OnlineMapsUtils.TileToQuadKey(x, y, zoom);
-            return v;
+            // Get local path (different than the one defined in editor).
+            string path = GetTilePath(tile);
+            // If the tile is cached.
+            if (File.Exists(path))
+            {
+
+                // Load tile texture from cache.
+                Texture2D tileTexture = new Texture2D(256, 256);
+                tileTexture.LoadImage(File.ReadAllBytes(path));
+                tileTexture.wrapMode = TextureWrapMode.Clamp;
+
+                // Send texture to map.
+                if (OnlineMaps.instance.target == OnlineMapsTarget.texture)
+                {
+                    tile.ApplyTexture(tileTexture);
+                    OnlineMaps.instance.buffer.ApplyTile(tile);
+                }
+                else
+                {
+                    tile.texture = tileTexture;
+                    tile.status = OnlineMapsTileStatus.loaded;
+                }
+                // Redraw map.
+                OnlineMaps.instance.Redraw();
+            }
+            else
+            {
+                // If the tile is not cached, download tile with a standard loader.
+                OnlineMaps.instance.StartDownloadTile(tile);
+            }
         }
-
-
-    }
-    public class MapHelper
-    {
         static Tuple<Vector2d, Vector2d> GetEnclosingRectOfMapRequestZone(IEnumerable<Vector2d> MapRequestZone)
         {
             Vector2d min = new Vector2d(MapRequestZone.Min(v => v.x), MapRequestZone.Min(v => v.y));
@@ -51,8 +66,6 @@ namespace IMKL_Logic
             var min = rect.Item1;
             var max = rect.Item2;
             var absCenter = (max + min) / 2;
-            Debug.Log(max + " " + min);
-
             //turn off gps and relocate map vies
             ZoomAndCenter(absCenter, 17);
 
@@ -67,92 +80,72 @@ namespace IMKL_Logic
         }
 
 
-
+        static string MapPath;
 
         /// <summary>
         /// Gets the local path for tile.
         /// </summary>
         /// <param name="tile">Reference to tile</param>
         /// <returns>Local path for tile</returns>
-        private static string GetTilePath(Tile tile)
+        static string GetTilePath(OnlineMapsTile tile)
         {
             string[] parts =
             {
-            "Assets",
-            "Resources",
-            "OnlineMapsTiles",
+           MapPath,
             tile.zoom.ToString(),
             tile.x.ToString(),
             tile.y + ".png"
         };
-            return string.Join("/", parts);
+            return FileExtension.CombinePaths(parts);
         }
 
 
 
         public static void DeleteCachedMaps()
         {
-            Directory.Delete(Path.Combine(Application.persistentDataPath,
-               "OnlineMapsTileCache"), true);
+            Directory.Delete(MapPath, true);
         }
-        static string GetMapProviderPattern()
+        static Tuple<Vector2d, Vector2d> GetTopLeftBottomRightFromMap(Vector2 mapPosition, int zoom)
         {
-            string pattern;
             var map = OnlineMaps.instance;
-            OnlineMapsProvider.MapType type = map.activeType;
-            bool useLabels = type.hasLabels ? map.labels : type.labelsEnabled;
-            bool labels = true;
-            if (useLabels)
-            {
-                if (!string.IsNullOrEmpty(type.urlWithLabels)) pattern = type.urlWithLabels;
-                else if (!string.IsNullOrEmpty(type.provider.url)) pattern = type.provider.url;
-                else
-                {
-                    pattern = type.urlWithoutLabels;
-                    labels = false;
-                }
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(type.urlWithoutLabels))
-                {
-                    pattern = type.urlWithoutLabels;
-                    labels = false;
-                }
-                else if (!string.IsNullOrEmpty(type.provider.url))
-                {
-                    pattern = type.provider.url;
-                    labels = false;
-                }
-                else pattern = type.urlWithLabels;
-            }
-            pattern = Regex.Replace(pattern, @"{\w+}", delegate (Match match)
-                {
-                    string v = match.Value.ToLower().Trim('{', '}');
-                    if (v == "lng") return map.language;
-                    if (v == "ext") return type.ext;
-                    if (v == "prop") return labels ? type.propWithLabels : type.propWithoutLabels;
-                    if (v == "variant") return labels ? type.variantWithLabels : type.variantWithoutLabels;
-                    return "{" + v + "}";
-                });
-            return Regex.Replace(pattern, @"{rnd(\d+)-(\d+)}", match => match.Groups[1].Value);
+            int width = map.target == OnlineMapsTarget.tileset ? map.tilesetWidth : map.width;
+            int height = map.target == OnlineMapsTarget.tileset ? map.tilesetHeight : map.height;
+
+            int countX = width / OnlineMapsUtils.tileSize;
+            int countY = height / OnlineMapsUtils.tileSize;
+
+            double px, py;
+            map.GetPosition(out px, out py);
+            map.projection.CoordinatesToTile(px, py, zoom, out px, out py);
+
+            Vector2 ptl = new Vector2((float)px - countX / 2f, (float)py - countY / 2f);
+            Vector2 pbr = new Vector2((float)px + countX / 2f, (float)py + countY / 2f);
+
+            double tlx, tly, brx, bry;
+            map.projection.TileToCoordinates(ptl.x, ptl.y, zoom, out tlx, out tly);
+            map.projection.TileToCoordinates(pbr.x, pbr.y, zoom, out brx, out bry);
+
+            return Tuple.Create(new Vector2d(tlx, tly), new Vector2d(brx, bry));
+
         }
-        public static IObservable<Unit> DownloadTilesForPackage(IMKLPackage package, IProgress<float> progressNotifier,
-                                                                                    int minZoom = 15, int maxZoom = 20)
+      
+        public static List<OnlineMapsTile> GetRequiredTilesForPackage(IMKLPackage package, int minZoom = 17, int maxZoom = 20)
         {
             OnlineMaps map = OnlineMaps.instance;
             var rect = GetEnclosingRectOfMapRequestZone(package.MapRequestZone);
-            var topLeftCoordinates = rect.Item1;
-            var bottomRightCoordinates = rect.Item2;
+            var min = rect.Item1;
+            var max = rect.Item2;
+            var absCenter = (max + min) / 2;
 
-            int iMin = Mathf.RoundToInt(minZoom);
-            int iMax = Mathf.RoundToInt(maxZoom);
-            var tiles = new List<Tile>();
-            Debug.Log("brak");
-            for (int zoom = iMin; zoom <= iMax; zoom++)
+            List<OnlineMapsTile> tiles = new List<OnlineMapsTile>();
+            int i=0;
+            for (int zoom = minZoom; zoom <= maxZoom; zoom++)
             {
-                Debug.Log(topLeftCoordinates);
-                Debug.Log(bottomRightCoordinates);
+                //I only download those tile that are around a particular zoom level
+                var rectDownload = GetTopLeftBottomRightFromMap(absCenter, zoom);
+                var topLeftCoordinates = rectDownload.Item1;
+                var bottomRightCoordinates = rectDownload.Item2;
+
                 double tlx, tly, brx, bry;
                 map.projection.CoordinatesToTile(topLeftCoordinates.x, topLeftCoordinates.y, zoom, out tlx, out tly);
                 map.projection.CoordinatesToTile(bottomRightCoordinates.x, bottomRightCoordinates.y, zoom, out brx, out bry);
@@ -160,7 +153,6 @@ namespace IMKL_Logic
                 int maxX = 1 << zoom;
 
                 if (brx < tlx) brx += maxX;
-                Debug.Log(tlx+ " "+brx);
                 for (int x = (int)tlx; x < (int)brx; x++)
                 {
                     int cx = x;
@@ -168,32 +160,32 @@ namespace IMKL_Logic
 
                     for (int y = (int)tly; y < (int)bry; y++)
                     {
-                        Tile tile = new Tile(cx, y, zoom);
+                        OnlineMapsTile tile = new OnlineMapsTile(cx, y, zoom, map);
 
                         string tilePath = GetTilePath(tile);
-                        Debug.Log(File.Exists(tilePath));
                         if (!File.Exists(tilePath)) tiles.Add(tile);
                     }
                 }
             }
-            var pattern = GetMapProviderPattern();
+            return tiles;
+        }
+        public static IObservable<Unit> DownloadTilesForPackage(IMKLPackage package, IProgress<float> progressNotifier)
+        {
+            var tiles = GetRequiredTilesForPackage(package);
             List<IObservable<Unit>> list = new List<IObservable<Unit>>();
-            foreach (Tile tile in tiles)
+
+            foreach (OnlineMapsTile tile in tiles)
             {
-                string url = Regex.Replace(pattern, @"{\w+}", tile.CustomProviderReplaceToken);
-                list.Add(UniRXExtensions.GetWWW(UnityWebRequest.Get(url)).Select((webrequest, idx) =>
+                list.Add(UniRXExtensions.GetWWW(UnityWebRequest.Get(tile.url)).Do(webrequest =>
                 {
                     string path = GetTilePath(tile);
                     FileInfo fileInfo = new FileInfo(path);
                     DirectoryInfo directory = fileInfo.Directory;
                     if (!directory.Exists) directory.Create();
                     File.WriteAllBytes(path, webrequest.downloadHandler.data);
-                    progressNotifier.Report((float)idx / tiles.Count());
-                    return Unit.Default;
-                }));
+                }).AsUnitObservable());
             }
-            Debug.Log(tiles.Count());
-            return list.Merge();
+            return list.Merge().ForEachAsync((_,idx)=>progressNotifier.Report((float)idx / tiles.Count()));
 
         }
 

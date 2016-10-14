@@ -51,7 +51,7 @@ namespace IMKL_Logic
         IEnumerable<Vector2> relativePos;
         string Thema;
         //range of zoom levels for which the elements are visible
-        public Line(IEnumerable<Vector2d> lb72Pos, string thema, string status, Dictionary<string, string> properties) : base(properties)
+        public Line(IEnumerable<Vector2d> lb72Pos, string thema, string status, List<string[]> properties) : base(properties)
         {
             latLonPos = lb72Pos.Select(pos => GEO.LambertToLatLong(pos));
             this.Thema = thema;
@@ -102,7 +102,7 @@ namespace IMKL_Logic
         public override string ToString()
         {
             return "properties: " + string.Join(" ", Properties.Select(kvp => kvp.ToString()).ToArray()) + Environment.NewLine
-                + "Position" + string.Join(" ", latLonPos.Select(p => p.ToString()).ToArray());
+                + "Position" + string.Join(Environment.NewLine, latLonPos.Select(p => p.ToString()).ToArray());
         }
         bool CheckBeforeUpdate()
         {

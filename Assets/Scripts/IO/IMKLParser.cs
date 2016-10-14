@@ -88,11 +88,10 @@ namespace IO
                                                                         .Value.Split('/').Last(),
                              status = point.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last(),
                              //Add additional desired properties as variables
+                             elt=point
                          };
             return points.Select(point => (DrawElement)new Point(point.pos,
-                           point.pointType, point.thema, point.status,
-                           ClassToDict(point))
-                        );
+                           point.pointType, point.thema, point.status,TempPropertyGetter.VNS_SetProperties(point.elt)));
         }
         static Dictionary<string,string> ClassToDict(object a){
             return a.GetType().GetProperties().ToDictionary(x => x.Name, x => x.GetValue(a, null).ToString());
@@ -121,11 +120,12 @@ namespace IO
                             thema = network.DescendantsByLocalName("utilityNetworkType").Single().AttributeByLocalName("href")
                                                                         .Value.Split('/').Last().ToLowerInvariant(),
                             status = line.DescendantsByLocalName("currentStatus").Single().AttributeByLocalName("href").Value.Split('/').Last(),
+                            elt=line
                         };
 
 
             return lines.Select(line => (DrawElement)new Line(line.posList,
-                                        line.thema, line.status,ClassToDict(line)
+                                        line.thema,line.status, TempPropertyGetter.VNS_SetProperties(line.elt)
                             ));
         }
 

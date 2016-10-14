@@ -19,7 +19,7 @@ namespace IMKL_Logic
         public GameObject GO{
             protected set; get;
         }
-        public Dictionary<string, string> Properties
+        public List<string[]> Properties
         {
             protected set; get;
         }
@@ -44,7 +44,6 @@ namespace IMKL_Logic
         }
         Vector3 InputMousePositionToWorld(Vector3 inputMousePos)
         {
-            var maxDist = (clickLineSensitivity / OnlineMaps.instance.zoom);
             //works for mobile devices as well
             //find closest point to line
             var mousScreenPos = inputMousePos;
@@ -54,7 +53,7 @@ namespace IMKL_Logic
             return mousePos;
         }
         public abstract void Init();
-        public DrawElement(Dictionary<string, string> properties)
+        public DrawElement(List<string[]> properties)
         {
             this.Properties = properties;
         }

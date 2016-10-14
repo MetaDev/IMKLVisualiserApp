@@ -28,7 +28,7 @@ public class MultiSelectItem : MonoBehaviour
     }
     public void Destroy()
     {
-        if (this!=null &&this.gameObject != null)
+        if (this != null && this.gameObject != null)
         {
             Destroy(gameObject);
         }
@@ -36,6 +36,11 @@ public class MultiSelectItem : MonoBehaviour
     public bool IsSelected()
     {
         return toggle.isOn;
+    }
+    public void SetTextColor(Color col)
+    {
+        Debug.Log(col);
+        base.transform.FindChild("Label").GetComponent<Text>().color = col;
     }
     void Start()
     {

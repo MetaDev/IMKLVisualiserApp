@@ -30,7 +30,7 @@ namespace IMKL_Logic
         string Thema;
         string Status;
         // Use this for initialization
-        public Point(Vector2d pos, string pointType, string thema, string status, Dictionary<string, string> properties) : base(properties)
+        public Point(Vector2d pos, string pointType, string thema, string status, List<string[]> properties) : base(properties)
         {
             //check properties
             PointType = pointType;

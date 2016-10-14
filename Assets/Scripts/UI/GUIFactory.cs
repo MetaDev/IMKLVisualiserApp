@@ -54,11 +54,11 @@ public class GUIFactory : MonoBehaviour
               items.Select(item => item.content).Cast<IMKLPackage>()
                             .Select(package => WebService.DownloadXMLForIMKLPackage(package).Select(xmls => Tuple.Create(package, xmls)))
                             .Merge()
-                            .Do(_ =>
+                            .Select((_,idx) =>
                             {
-                                i++;
                                 MyModalWindow.Show("Please wait while downloading selected package data.\n" +
-                                "Currently downloading package " + i + " out of " + items.Count(), ModalWindow.ModalType.MESSAGE);
+                                "Currently downloading package " + idx + " out of " + items.Count(), ModalWindow.ModalType.MESSAGE);
+                                return _;
                             })
                             .ToList()
                             .DoOnError(error => MyModalWindow.Show(error.Message, ModalWindow.ModalType.OK))
@@ -75,36 +75,38 @@ public class GUIFactory : MonoBehaviour
     public static GUIFactory instance;
     List<DrawElement> ActiveDrawElements;
 
-    void InitDrawPanel()
+    void InitLocalPackagePanel()
     {
         //init draw panel with saved packages
         Serializer.LoadAllIMKLPackages();
         //refresh the draw panel on the content of the imkl packages
-        Serializer.PackagesChanged().Subscribe(packages => AddDrawPackages(packages));
+        Serializer.PackagesChanged().Subscribe(packages => AddLocalPackages(packages));
         //download maps button
-        LocalPackagesPanel.OnSelectedItemsAsObservable(1)
-        .Do(_ =>MyModalWindow.Show("Please wait while maps for the package are being downloaded.", ModalWindow.ModalType.MESSAGE))
-        .Subscribe(items => items.Select(item => item.content).Cast<IMKLPackage>()
-            .ForEach(package =>
-            {
-                Debug.Log("test");
-                var progressNotifier = new ScheduledNotifier<float>();
-                progressNotifier.Subscribe(prog => MyModalWindow.Show(
-                    "Please wait while maps for the package are being downloaded.\nPackage :" + package.ID +
-                                                            "progress: " + prog.ToString("0%"), ModalWindow.ModalType.MESSAGE));
-                MapHelper.DownloadTilesForPackage(package, progressNotifier).Subscribe();
-            }));
+        // LocalPackagesPanel.OnSelectedItemsAsObservable(1)
+        // .Do(_ => MyModalWindow.Show("Please wait while maps for the package are being downloaded.", ModalWindow.ModalType.MESSAGE))
+        // .Subscribe(items => items.Select(item => (IMKLPackage)item.content).Cast<IMKLPackage>()
+        //     .ForEach(package =>
+        //     {
+        //         var progressNotifier = new ScheduledNotifier<float>();
+        //         progressNotifier.Subscribe(prog => MyModalWindow.Show(
+        //             "Please wait while maps for the package are being downloaded.\nPackage :" + package.ID +
+        //                                                     "progress: " + prog.ToString("0%"), ModalWindow.ModalType.MESSAGE));
+        //         Observable.FromCoroutine(() =>MapHelper.DownloadTilesForPackage(package, progressNotifier).ToYieldInstruction())
+        //         .DoOnCompleted(() => MyModalWindow.Close())
+        //         .Subscribe();
+        //         package.HasAllMaps.Value=true;
+        //     }));
         //delete package button
-        LocalPackagesPanel.OnSelectedItemsAsObservable(2).Subscribe(items =>
+        LocalPackagesPanel.OnSelectedItemsAsObservable(1).Subscribe(items =>
         {
             GUIFactory.instance.MyModalWindow
-            .Show("Are you sure you want to deleted "+ items.Count() +" packages?", ModalWindow.ModalType.OKCANCEL);
-            GUIFactory.instance.MyModalWindow.GetModalButtonObservable().Where(button=>button==ModalWindow.ModalReturn.OK)
+            .Show("Are you sure you want to deleted " + items.Count() + " packages?", ModalWindow.ModalType.OKCANCEL);
+            GUIFactory.instance.MyModalWindow.GetModalButtonObservable().Where(button => button == ModalWindow.ModalReturn.OK)
             .ObserveOn(Scheduler.ThreadPool).Subscribe(_ =>
                 Serializer.DeletePackages(items.Select(item => item.content).Cast<IMKLPackage>()));
         });
-        
-        
+
+
 
         //draw button
         LocalPackagesPanel.OnSelectedItemsAsObservable(0).Where(items => items.Count() > 1)
@@ -139,13 +141,13 @@ public class GUIFactory : MonoBehaviour
 
     void Start()
     {
-
+        
         //Singleton
         instance = this;
         //zoom and center map on flanders
         MapHelper.ZoomAndCenter(new Vector2(4.2159f, 51.0236f), 10);
         //Draw Panel
-        InitDrawPanel();
+        InitLocalPackagePanel();
         //refresh of load packet information
         RefreshOnlinePackages.OnClickAsObservable().Subscribe(_ => LoadPacketInfo());
         //online packages panel
@@ -172,14 +174,19 @@ public class GUIFactory : MonoBehaviour
         });
     }
 
-    void AddDrawPackages(IEnumerable<IMKLPackage> packages)
+    void AddLocalPackages(IEnumerable<IMKLPackage> packages)
     {
         LocalPackagesPanel.ClearItemUIs();
         LocalPackagesPanel.AddItems(packages.Where(package => package.KLBResponses != null)
                     .Select(package =>
                     {
                         return Tuple.Create(package.Reference, (object)package);
-                    }));
+                    }))
+                    .Zip(packages,(itemUI,package)=>package.HasAllMaps.AsObservable()
+                    .Do(_=>Debug.Log("bazaar"+_))
+                    .Where(hasMaps=>hasMaps)
+                    .Subscribe(_=>itemUI.SetTextColor(Color.green)));
+        
     }
 
 
@@ -198,7 +205,7 @@ public class GUIFactory : MonoBehaviour
             {
                 elt.Init();
                 //draw X elements per frame
-                if (i % 5 == 0)
+                if (i % 10 == 0)
                 {
                     progressNotifier.Report((float)i / drawElements.Count());
                     yield return null;
