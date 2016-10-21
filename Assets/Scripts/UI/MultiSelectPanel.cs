@@ -1,23 +1,24 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using System;
 using UnityEngine.UI;
 using UniRx;
 using MoreLinq;
 public class MultiSelectPanel : MonoBehaviour
 {
-    private List<MultiSelectItem> itemUIs = new List<MultiSelectItem>();
+    public List<MultiSelectItem> itemUIs = new List<MultiSelectItem>();
     // Use this for initialization
     public Button[] Buttons;
-    public ToggleGroup Group;
     public ScrollRect Scroll;
 
     public RectTransform contentView
     {
         get { return Scroll.content.GetComponent<RectTransform>(); }
     }
-    public IEnumerable<object> GetSelectedItemsContent(){
-        return itemUIs.Where(i => i.IsSelected()).Select(items=>items.content);
+    public IEnumerable<object> GetSelectedItemsContent()
+    {
+        return itemUIs.Where(i => i.IsSelected()).Select(items => items.content);
     }
     public IObservable<IEnumerable<MultiSelectItem>> OnSelectedItemsAsObservable(int buttonIndex)
     {
@@ -30,6 +31,12 @@ public class MultiSelectPanel : MonoBehaviour
             throw new MissingComponentException("Not possible to observe multiselect panel selected items without OK button.");
         }
     }
+    IObservable<MultiSelectItem> ObsItemClicked = Observable.Empty<MultiSelectItem>();
+    IDisposable obsItemClickedDisp;
+    public IObservable<MultiSelectItem> OnItemClicked()
+    {
+        return ObsItemClicked;
+    }
     MultiSelectItem _InitItemUI()
     {
         var go = Instantiate(Resources.Load("GUI/MultiSelectItemPrefab")) as GameObject;
@@ -38,39 +45,30 @@ public class MultiSelectPanel : MonoBehaviour
         itemUI.transform.SetParent(contentView, false);
         return itemUI;
     }
-    MultiSelectItem InitItemUI(string label, object content, bool interactable=true)
+    MultiSelectItem InitItemUI(string label, object content, bool interactable = true,bool toggle=true)
     {
         var itemUI = _InitItemUI();
-        itemUI.Init(label, content, interactable, Group);
-
+        itemUI.Init(label, content, interactable,toggle);
         return itemUI;
     }
 
-    public List<MultiSelectItem> AddItems(IEnumerable<Tuple<string, System.Object, bool>> items)
+    public List<MultiSelectItem> AddItems(IEnumerable<Tuple<string, System.Object, bool>> items,bool toggle=true)
     {
         ClearItemUIs();
         //add new ones
-        //the togglegroup has to be created in superclass because Start() cannot be overridden
-        itemUIs = items.Select(item => InitItemUI(item.Item1, item.Item2, item.Item3)).ToList();
+        itemUIs = items.Select(item => InitItemUI(item.Item1, item.Item2, item.Item3,toggle)).ToList();
+        ObsItemClicked = itemUIs.Select(itemUI => itemUI.OnClickSelf()).Merge();
         return itemUIs;
 
     }
-    public List<MultiSelectItem> AddItems(IEnumerable<Tuple<string, System.Object>> items)
-    {
-        ClearItemUIs();
-        //add new ones
-        //the togglegroup has to be created in superclass because Start() cannot be overridden
-        itemUIs = items.Select(item => InitItemUI(item.Item1, item.Item2, true)).ToList();
-        return itemUIs;
-
-    }
+   
     public void ClearItemUIs()
     {
         //remove items, and delete them
         contentView.DetachChildren();
         itemUIs.ForEach(iUI => iUI.Destroy());
     }
-   
+
 
 
 }

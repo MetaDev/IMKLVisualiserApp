@@ -15,8 +15,8 @@ namespace IMKL_Logic
         void Start()
         {
             //override the tile download process
-            OnlineMaps.instance.OnStartDownloadTile += OnStartDownloadTile;
-            MapPath = Path.Combine(Application.persistentDataPath, "OnlineMapsTiles");
+            // OnlineMaps.instance.OnStartDownloadTile += OnStartDownloadTile;
+             MapPath = Path.Combine(Application.persistentDataPath, "OnlineMapsTiles");
         }
         static void OnStartDownloadTile(OnlineMapsTile tile)
         {

@@ -2,7 +2,9 @@ todo
 
 download map per package, still a bug, the Onlinemap doesn't properly visualise the textures without wifi
 
-bug in local packages, the color of the text doesn't change on the observables
+bug in local packages, the color of the text doesn't change on the observables if map downloaded
+
+production web service not working
 
 progress for download package info
 
@@ -19,7 +21,7 @@ online packages->
 draw elements panel->
     click instead of multiselect
 
-bigger buttons
+don't allow lines to be selected when the drawelements panel is opened
 
 long press for item selection
 

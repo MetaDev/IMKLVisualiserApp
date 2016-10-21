@@ -56,6 +56,13 @@ namespace IO
             }
         }
         static string _redirectUri = "https://vianova.com";
+        static string uriAuth{
+            get
+            {
+                return BetaWebservice ? "https://oauth.beta.agiv.be/authorization/ws/oauth/v2/token" :
+                                            "https://oauth.agiv.be/authorization/ws/oauth/v2/token";
+            }
+        }
 
         static string allMapRequestAPIURL
         {
@@ -183,8 +190,7 @@ namespace IO
             form.AddField("grant_type", "refresh_token");
             form.AddField("refresh_token", refreshToken);
 
-            string url = "https://oauth.beta.agiv.be/authorization/ws/oauth/v2/token";
-            UnityWebRequest www = UnityWebRequest.Post(url, form);
+            UnityWebRequest www = UnityWebRequest.Post(uriAuth, form);
 
 
             return UniRXExtensions.GetWWW(www).Select((webrequest) =>

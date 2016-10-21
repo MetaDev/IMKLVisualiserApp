@@ -180,7 +180,7 @@ public class GUIFactory : MonoBehaviour
         LocalPackagesPanel.AddItems(packages.Where(package => package.KLBResponses != null)
                     .Select(package =>
                     {
-                        return Tuple.Create(package.Reference, (object)package);
+                        return Tuple.Create(package.Reference, (object)package,true);
                     }))
                     .Zip(packages,(itemUI,package)=>package.HasAllMaps.AsObservable()
                     .Do(_=>Debug.Log("bazaar"+_))
