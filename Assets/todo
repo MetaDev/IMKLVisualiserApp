@@ -22,6 +22,7 @@ draw elements panel->
     click instead of multiselect
 
 don't allow lines to be selected when the drawelements panel is opened
+disable player input on loading
 
 long press for item selection
 
